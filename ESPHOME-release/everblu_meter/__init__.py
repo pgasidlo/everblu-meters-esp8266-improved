@@ -51,6 +51,11 @@ CONF_RETRY_COOLDOWN = "retry_cooldown"
 CONF_INITIAL_READ_ON_BOOT = "initial_read_on_boot"
 CONF_DEBUG_CC1101 = "debug_cc1101"
 CONF_ADAPTIVE_THRESHOLD = "adaptive_threshold"
+CONF_MODE = "mode"
+
+# Operating modes
+MODE_QUERY = "query"
+MODE_SNIFFER = "sniffer"
 
 # Sensor configuration keys
 CONF_VOLUME = "volume"
@@ -120,6 +125,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_INITIAL_READ_ON_BOOT, default=False): cv.boolean,
             cv.Optional(CONF_DEBUG_CC1101, default=False): cv.boolean,
             cv.Optional(CONF_ADAPTIVE_THRESHOLD, default=1): cv.int_range(min=1, max=100),
+            cv.Optional(CONF_MODE, default=MODE_QUERY): cv.one_of(MODE_QUERY, MODE_SNIFFER, lower=True),
             # Sensors
             cv.Optional(CONF_VOLUME): sensor.sensor_schema(
                 state_class=STATE_CLASS_TOTAL_INCREASING,
@@ -297,6 +303,7 @@ async def to_code(config):
     cg.add(var.set_retry_cooldown(config[CONF_RETRY_COOLDOWN]))  # Already in ms
     cg.add(var.set_initial_read_on_boot(config[CONF_INITIAL_READ_ON_BOOT]))
     cg.add(var.set_adaptive_threshold(config[CONF_ADAPTIVE_THRESHOLD]))
+    cg.add(var.set_sniffer_mode(config[CONF_MODE] == MODE_SNIFFER))
 
     # Enable detailed CC1101 debug logs when requested
     if config.get(CONF_DEBUG_CC1101, False):

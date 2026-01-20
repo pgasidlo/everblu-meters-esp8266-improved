@@ -31,6 +31,7 @@ public:
     void setVolumeDivisor(int divisor) { volume_divisor_ = divisor; }
     void setFrequency(float freq) { frequency_ = freq; }
     void setAutoScanEnabled(bool enabled) { auto_scan_enabled_ = enabled; }
+    void setSnifferMode(bool enabled) { sniffer_mode_ = enabled; }
     void setReadingSchedule(const char *schedule);
     void setReadHourUTC(int hour) { read_hour_utc_ = hour; }
     void setReadMinuteUTC(int minute) { read_minute_utc_ = minute; }
@@ -47,6 +48,7 @@ public:
     int getVolumeDivisor() const override { return volume_divisor_; }
     float getFrequency() const override { return frequency_; }
     bool isAutoScanEnabled() const override { return auto_scan_enabled_; }
+    bool isSnifferMode() const override { return sniffer_mode_; }
     const char *getReadingSchedule() const override { return reading_schedule_; }
     int getReadHourUTC() const override { return read_hour_utc_; }
     int getReadMinuteUTC() const override { return read_minute_utc_; }
@@ -76,6 +78,9 @@ private:
     // RF configuration
     float frequency_{433.82f};
     bool auto_scan_enabled_{true};
+
+    // Operating mode
+    bool sniffer_mode_{false};
 
     // Scheduling configuration
     char reading_schedule_[32]{"Monday-Friday"};

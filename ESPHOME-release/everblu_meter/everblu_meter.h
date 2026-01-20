@@ -86,6 +86,7 @@ namespace esphome
             void set_time_component(time::RealTimeClock *time) { time_component_ = time; }
             void set_initial_read_on_boot(bool v) { initial_read_on_boot_ = v; }
             void set_adaptive_threshold(int threshold) { adaptive_threshold_ = threshold; }
+            void set_sniffer_mode(bool enabled) { sniffer_mode_ = enabled; }
 
             // Sensor setters
             void set_volume_sensor(sensor::Sensor *sensor) { volume_sensor_ = sensor; }
@@ -138,6 +139,7 @@ namespace esphome
             int max_retries_{10};
             unsigned long retry_cooldown_ms_{3600000};
             int adaptive_threshold_{1};
+            bool sniffer_mode_{false};
 
             // Internal state tracking
             void republish_initial_states();

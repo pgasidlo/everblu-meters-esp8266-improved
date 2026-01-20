@@ -154,6 +154,7 @@ private:
     bool m_readingInProgress;
     bool m_isScheduledRead;
     bool m_haConnected;
+    bool m_snifferMode;  // Sniffer mode: passive listening for trigger frames
 
     // Retry management
     int m_retryCount;
