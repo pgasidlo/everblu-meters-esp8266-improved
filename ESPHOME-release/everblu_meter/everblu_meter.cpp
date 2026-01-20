@@ -56,7 +56,7 @@ namespace esphome
             config_provider_->setMeterYear(meter_year_);
             config_provider_->setMeterSerial(meter_serial_);
             config_provider_->setMeterType(is_gas_);
-            config_provider_->setGasVolumeDivisor(gas_volume_divisor_);
+            config_provider_->setVolumeDivisor(volume_divisor_);
             config_provider_->setFrequency(frequency_);
             config_provider_->setAutoScanEnabled(auto_scan_);
             config_provider_->setReadingSchedule(reading_schedule_.c_str());
@@ -301,10 +301,7 @@ namespace esphome
             ESP_LOGCONFIG(TAG, "  Meter Year: %u", meter_year_);
             ESP_LOGCONFIG(TAG, "  Meter Serial: %u", meter_serial_);
             ESP_LOGCONFIG(TAG, "  Meter Type: %s", is_gas_ ? "Gas" : "Water");
-            if (is_gas_)
-            {
-                ESP_LOGCONFIG(TAG, "  Gas Volume Divisor: %d", gas_volume_divisor_);
-            }
+            ESP_LOGCONFIG(TAG, "  Volume Divisor: %d", volume_divisor_);
             ESP_LOGCONFIG(TAG, "  Frequency: %.2f MHz", frequency_);
             ESP_LOGCONFIG(TAG, "  Auto Scan: %s", auto_scan_ ? "Enabled" : "Disabled");
             ESP_LOGCONFIG(TAG, "  Reading Schedule: %s", reading_schedule_.c_str());

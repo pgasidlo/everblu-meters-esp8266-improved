@@ -72,7 +72,7 @@ namespace esphome
             void set_meter_year(uint8_t year) { meter_year_ = year; }
             void set_meter_serial(uint32_t serial) { meter_serial_ = serial; }
             void set_meter_type(bool is_gas) { is_gas_ = is_gas; }
-            void set_gas_volume_divisor(int divisor) { gas_volume_divisor_ = divisor; }
+            void set_volume_divisor(int divisor) { volume_divisor_ = divisor; }
             void set_frequency(float freq) { frequency_ = freq; }
             void set_auto_scan(bool enabled) { auto_scan_ = enabled; }
             void set_reading_schedule(const std::string &schedule) { reading_schedule_ = schedule; }
@@ -126,7 +126,7 @@ namespace esphome
             uint8_t meter_year_{0};
             uint32_t meter_serial_{0};
             bool is_gas_{false};
-            int gas_volume_divisor_{100};
+            int volume_divisor_{1};
             float frequency_{433.82f};
             bool auto_scan_{true};
             std::string reading_schedule_{"Monday-Friday"};
