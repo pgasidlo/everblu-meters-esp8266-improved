@@ -1643,3 +1643,206 @@ struct tmeter_data get_meter_data(void)
   sdata.freqest = (int8_t)halRfReadReg(FREQEST_ADDR);                // Read frequency offset estimate for adaptive tracking
   return sdata;
 }
+
+// ============================================================================
+// SNIFFER MODE FUNCTIONS
+// ============================================================================
+// These functions enable passive listening for trigger (interrogation) frames
+// sent by other devices. No transmissions occur in sniffer mode.
+// ============================================================================
+
+/**
+ * @brief Configure CC1101 for sniffer mode (listening for trigger frames)
+ *
+ * Sets up the radio to detect trigger frames using:
+ * - Sync word: 0x5550 (trigger frame preamble pattern)
+ * - Data rate: 9.6 kbps (4x oversampling of 2.4 kbps transmission)
+ * - Infinite packet length mode for variable frame sizes
+ */
+void sniffer_configure_rx(void)
+{
+  echo_debug(1, "[SNIFFER] Configuring CC1101 for trigger frame reception\n");
+
+  CC1101_CMD(SIDLE);
+  CC1101_CMD(SFRX);
+
+  // Configure sync word to detect trigger frame preamble (0x5550)
+  halRfWriteReg(SYNC1, SYNC1_PATTERN_55); // 0x55
+  halRfWriteReg(SYNC0, SYNC0_PATTERN_50); // 0x50
+
+  // Configure for 4x oversampled reception (9.6 kbps)
+  // Trigger frames are transmitted at 2.4 kbps with 4x oversampling
+  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ_9_6KBPS);
+  halRfWriteReg(MDMCFG3, MDMCFG3_DRATE_2_4KBPS);
+  halRfWriteReg(MDMCFG2, MDMCFG2_2FSK_16_16_SYNC);
+
+  // Infinite packet length for variable trigger frame sizes
+  halRfWriteReg(PKTCTRL0, PKTCTRL0_INFINITE_LENGTH);
+  halRfWriteReg(MCSM1, MCSM1_CCA_ALWAYS_RX); // Stay in RX mode
+
+  cc1101_rec_mode();
+  echo_debug(1, "[SNIFFER] Ready - listening for trigger frames\n");
+}
+
+/**
+ * @brief Listen for trigger frames in sniffer mode
+ *
+ * Trigger frame structure (pre-encoding, 19 bytes):
+ * [0]  = 0x13 (length)
+ * [1]  = 0x10 (control byte - REQUEST)
+ * [2]  = 0x00
+ * [3]  = 0x45 (receiver address)
+ * [4]  = meter_year (2-digit year)
+ * [5]  = meter_serial MSB (bits 23:16)
+ * [6]  = meter_serial (bits 15:8)
+ * [7]  = meter_serial LSB (bits 7:0)
+ * ...
+ * [17-18] = CRC-16/KERMIT
+ *
+ * After serial encoding (1+8+3 bits per byte) and 4x oversampling,
+ * the frame becomes approximately 104 bytes on air.
+ */
+bool sniffer_listen(struct detected_meter *detected, int timeout_ms)
+{
+  static uint8_t rxBuffer[256]; // Raw 4x oversampled data
+  static uint8_t decoded[64];   // Decoded trigger frame
+
+  // Minimum sizes
+  const int MIN_RAW_BYTES = 40;           // Minimum raw bytes to process
+  const int MIN_DECODED_BYTES = 8;        // Need at least bytes [0-7] for validation
+  const int TRIGGER_FRAME_LENGTH = 0x13;  // Expected length byte value (19)
+  const int TRIGGER_FRAME_MARKER = 0x45;  // Expected byte [3] value
+
+  int l_tmo = 0;
+
+  // Wait for sync word detection (GDO0 goes high)
+  while ((digitalRead(GDO0) == FALSE) && (l_tmo < timeout_ms))
+  {
+    delay(1);
+    l_tmo++;
+    if (l_tmo % 50 == 0)
+      FEED_WDT();
+  }
+
+  if (l_tmo >= timeout_ms)
+  {
+    // No frame detected within timeout - this is normal, just return
+    return false;
+  }
+
+  echo_debug(debug_out, "[SNIFFER] Sync detected at %dms\n", l_tmo);
+
+  // Capture signal quality immediately
+  int8_t rssi_dbm = cc1100_rssi_convert2dbm(halRfReadReg(RSSI_ADDR));
+  uint8_t lqi = halRfReadReg(LQI_ADDR);
+
+  // Receive the frame data
+  uint16_t rxLen = 0;
+  unsigned long receive_start = millis();
+  const unsigned long RECEIVE_TIMEOUT_MS = 200; // Max time to receive frame
+
+  while ((millis() - receive_start) < RECEIVE_TIMEOUT_MS)
+  {
+    uint8_t available = halRfReadReg(RXBYTES_ADDR) & RXBYTES_MASK;
+    if (available > 0 && rxLen + available < sizeof(rxBuffer))
+    {
+      SPIReadBurstReg(RX_FIFO_ADDR, &rxBuffer[rxLen], available);
+      rxLen += available;
+    }
+
+    // Check if GDO0 deasserted (end of packet)
+    if (digitalRead(GDO0) == FALSE && rxLen > 0)
+    {
+      // Give a little more time to receive trailing bytes
+      delay(10);
+      available = halRfReadReg(RXBYTES_ADDR) & RXBYTES_MASK;
+      if (available > 0 && rxLen + available < sizeof(rxBuffer))
+      {
+        SPIReadBurstReg(RX_FIFO_ADDR, &rxBuffer[rxLen], available);
+        rxLen += available;
+      }
+      break;
+    }
+
+    delay(2);
+    FEED_WDT();
+  }
+
+  // Reset radio for next reception
+  CC1101_CMD(SFRX);
+  sniffer_configure_rx();
+
+  if (rxLen < MIN_RAW_BYTES)
+  {
+    echo_debug(debug_out, "[SNIFFER] Frame too short: %d bytes\n", rxLen);
+    return false;
+  }
+
+  echo_debug(debug_out, "[SNIFFER] Received %d raw bytes\n", rxLen);
+
+  // Decode the 4x oversampled data
+  uint8_t decodedLen = decode_4bitpbit_serial(rxBuffer, rxLen, decoded);
+
+  if (decodedLen < MIN_DECODED_BYTES)
+  {
+    echo_debug(debug_out, "[SNIFFER] Decoded frame too short: %d bytes\n", decodedLen);
+    return false;
+  }
+
+  echo_debug(debug_out, "[SNIFFER] Decoded %d bytes\n", decodedLen);
+  if (debug_out)
+  {
+    show_in_hex_one_line(decoded, decodedLen);
+  }
+
+  // Validate trigger frame structure
+  // Expected: [0]=0x13 (length 19), [1]=0x10, [2]=0x00, [3]=0x45
+  if (decoded[0] != TRIGGER_FRAME_LENGTH)
+  {
+    echo_debug(debug_out, "[SNIFFER] Not a trigger frame (length=0x%02X, expected 0x%02X)\n",
+               decoded[0], TRIGGER_FRAME_LENGTH);
+    return false;
+  }
+
+  if (decoded[3] != TRIGGER_FRAME_MARKER)
+  {
+    echo_debug(debug_out, "[SNIFFER] Not a trigger frame (marker=0x%02X, expected 0x%02X)\n",
+               decoded[3], TRIGGER_FRAME_MARKER);
+    return false;
+  }
+
+  // Optional: Validate CRC if we have enough data (19 bytes)
+  if (decodedLen >= 19)
+  {
+    uint16_t calc_crc = crc_kermit(decoded, 17);
+    uint16_t frame_crc = ((uint16_t)decoded[17] << 8) | decoded[18];
+    if (calc_crc != frame_crc)
+    {
+      echo_debug(debug_out, "[SNIFFER] CRC mismatch: calc=0x%04X, frame=0x%04X\n",
+                 calc_crc, frame_crc);
+      // Don't reject - CRC might be affected by noise, still log the detection
+    }
+    else
+    {
+      echo_debug(debug_out, "[SNIFFER] CRC valid\n");
+    }
+  }
+
+  // Extract meter identification
+  // Byte [4] = meter_year (2-digit year)
+  // Bytes [5-7] = meter_serial (24-bit, big-endian)
+  detected->meter_year = decoded[4];
+  detected->meter_serial = ((uint32_t)decoded[5] << 16) |
+                           ((uint32_t)decoded[6] << 8) |
+                           ((uint32_t)decoded[7]);
+  detected->rssi_dbm = rssi_dbm;
+  detected->lqi = lqi;
+
+  echo_debug(1, "[SNIFFER] === METER DETECTED ===\n");
+  echo_debug(1, "[SNIFFER] Year: %02d, Serial: %lu\n",
+             detected->meter_year, (unsigned long)detected->meter_serial);
+  echo_debug(1, "[SNIFFER] RSSI: %d dBm, LQI: %d\n",
+             detected->rssi_dbm, detected->lqi);
+
+  return true;
+}

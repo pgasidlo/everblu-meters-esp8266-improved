@@ -50,7 +50,7 @@ static void logReadableSummary(const tmeter_data &data, const IConfigProvider *c
 }
 
 MeterReader::MeterReader(IConfigProvider *config, ITimeProvider *timeProvider, IDataPublisher *publisher)
-    : m_config(config), m_timeProvider(timeProvider), m_publisher(publisher), m_initialized(false), m_readingInProgress(false), m_isScheduledRead(false), m_haConnected(false), m_retryCount(0), m_lastFailedAttempt(0), m_nextRetryTime(0), m_totalReadAttempts(0), m_successfulReads(0), m_failedReads(0), m_lastErrorMessage("None"), m_lastScheduleCheck(0), m_lastStatsPublish(0), m_readHourLocal(10), m_readMinuteLocal(0), m_lastReadDayMatch(false), m_lastReadTimeMatch(false)
+    : m_config(config), m_timeProvider(timeProvider), m_publisher(publisher), m_initialized(false), m_readingInProgress(false), m_isScheduledRead(false), m_haConnected(false), m_snifferMode(false), m_retryCount(0), m_lastFailedAttempt(0), m_nextRetryTime(0), m_totalReadAttempts(0), m_successfulReads(0), m_failedReads(0), m_lastErrorMessage("None"), m_lastScheduleCheck(0), m_lastStatsPublish(0), m_readHourLocal(10), m_readMinuteLocal(0), m_lastReadDayMatch(false), m_lastReadTimeMatch(false)
 {
 }
 
@@ -58,6 +58,35 @@ void MeterReader::begin()
 {
     LOG_I("everblu_meter", "Initializing...");
 
+    // Check if sniffer mode is enabled
+    m_snifferMode = m_config->isSnifferMode();
+
+    if (m_snifferMode)
+    {
+        LOG_I("everblu_meter", "=== SNIFFER MODE ENABLED ===");
+        LOG_I("everblu_meter", "Passive listening for trigger frames - no transmissions");
+
+        // Initialize radio at configured frequency
+        float frequency = m_config->getFrequency();
+        bool radio_ok = cc1101_init(frequency);
+
+        if (radio_ok)
+        {
+            // Configure for sniffer mode (listening for trigger frames)
+            sniffer_configure_rx();
+            LOG_I("everblu_meter", "CC1101 configured at %.6f MHz", frequency);
+            LOG_I("everblu_meter", "Listening for trigger frames...");
+        }
+        else
+        {
+            LOG_E("everblu_meter", "Failed to initialize CC1101 radio");
+        }
+
+        m_initialized = true;
+        return; // Skip normal query mode initialization
+    }
+
+    // Normal query mode initialization
     // Register FrequencyManager callbacks
     FrequencyManager::setRadioInitCallback(cc1101_init);
     FrequencyManager::setMeterReadCallback(get_meter_data);
@@ -144,6 +173,29 @@ void MeterReader::loop()
     if (!m_initialized)
         return;
 
+    // Sniffer mode: continuously listen for trigger frames
+    if (m_snifferMode)
+    {
+        struct detected_meter detected;
+
+        // Listen with 100ms timeout (non-blocking enough to allow WiFi etc.)
+        if (sniffer_listen(&detected, 100))
+        {
+            // Trigger frame detected - log it
+            LOG_I("sniffer", "=== METER DETECTED ===");
+            LOG_I("sniffer", "Year: %02d, Serial: %lu",
+                  detected.meter_year, (unsigned long)detected.meter_serial);
+            LOG_I("sniffer", "RSSI: %d dBm, LQI: %d",
+                  detected.rssi_dbm, detected.lqi);
+
+            m_totalReadAttempts++; // Track detections as "attempts" for stats
+            m_successfulReads++;
+        }
+
+        return; // Skip normal query mode logic
+    }
+
+    // Normal query mode
     unsigned long now = millis();
 
     // Check for pending retry

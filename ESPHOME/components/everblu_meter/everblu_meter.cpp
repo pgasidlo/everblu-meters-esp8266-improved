@@ -67,6 +67,7 @@ namespace esphome
             config_provider_->setUseAutoAlignMidpoint(auto_align_midpoint_);
             config_provider_->setMaxRetries(max_retries_);
             config_provider_->setRetryCooldownMs(retry_cooldown_ms_);
+            config_provider_->setSnifferMode(sniffer_mode_);
 
             // Create time provider
             if (time_component_ != nullptr)
@@ -312,6 +313,7 @@ namespace esphome
             ESP_LOGCONFIG(TAG, "  Max Retries: %d", max_retries_);
             ESP_LOGCONFIG(TAG, "  Retry Cooldown: %lu ms", retry_cooldown_ms_);
             ESP_LOGCONFIG(TAG, "  Initial Read On Boot: %s", initial_read_on_boot_ ? "Enabled" : "Disabled");
+            ESP_LOGCONFIG(TAG, "  Operating Mode: %s", sniffer_mode_ ? "SNIFFER (passive)" : "QUERY (active)");
 
             ESP_LOGCONFIG(TAG, "  Sensors:");
             LOG_SENSOR("    ", "Volume", volume_sensor_);

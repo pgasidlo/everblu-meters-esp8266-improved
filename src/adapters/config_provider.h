@@ -38,6 +38,9 @@ public:
     virtual float getFrequency() const = 0;
     virtual bool isAutoScanEnabled() const = 0;
 
+    // Operating mode
+    virtual bool isSnifferMode() const = 0;
+
     // Scheduling configuration
     virtual const char *getReadingSchedule() const = 0;
     virtual int getReadHourUTC() const = 0;

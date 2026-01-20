@@ -14,6 +14,21 @@
 #include <stdbool.h>
 
 /**
+ * @struct detected_meter
+ * @brief Structure to hold detected meter identification from sniffer mode
+ *
+ * Contains meter identification extracted from trigger (interrogation) frames
+ * captured in passive sniffer mode.
+ */
+struct detected_meter
+{
+  uint8_t meter_year;    // 2-digit year from trigger frame (e.g., 17 for 2017)
+  uint32_t meter_serial; // 24-bit serial number from trigger frame
+  int8_t rssi_dbm;       // Signal strength in dBm
+  uint8_t lqi;           // Link Quality Indicator (0-255)
+};
+
+/**
  * @struct tmeter_data
  * @brief Meter data structure containing current readings and metadata
  *
@@ -84,5 +99,31 @@ void cc1101_rec_mode(void);
  * @return tmeter_data structure containing all extracted meter data
  */
 struct tmeter_data get_meter_data(void);
+
+/**
+ * @brief Configure CC1101 for sniffer mode (passive listening for trigger frames)
+ *
+ * Sets up the radio to listen for trigger (interrogation) frames sent by
+ * other devices. In this mode, no transmissions occur - the device only listens.
+ *
+ * Call this once after cc1101_init() to enter sniffer mode.
+ */
+void sniffer_configure_rx(void);
+
+/**
+ * @brief Listen for trigger frames in sniffer mode
+ *
+ * Non-blocking function that checks for incoming trigger frames.
+ * If a valid trigger frame is detected, extracts meter_year and meter_serial.
+ *
+ * Trigger frame structure (pre-encoding, 19 bytes):
+ * - Byte [4]: meter_year (2-digit year)
+ * - Bytes [5-7]: meter_serial (24-bit, big-endian)
+ *
+ * @param detected Output structure to store detected meter info
+ * @param timeout_ms Maximum time to wait for a frame (milliseconds)
+ * @return true if a valid trigger frame was detected, false otherwise
+ */
+bool sniffer_listen(struct detected_meter *detected, int timeout_ms);
 
 #endif // __CC1101_H__

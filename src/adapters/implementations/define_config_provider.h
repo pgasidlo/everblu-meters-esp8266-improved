@@ -68,6 +68,18 @@ public:
 #endif
         }
 
+        // Operating mode
+        bool isSnifferMode() const override
+        {
+#ifdef OPERATING_MODE
+                // Check if mode is "sniffer"
+                const char *mode = OPERATING_MODE;
+                return (mode[0] == 's' || mode[0] == 'S');
+#else
+                return false; // Default to query mode
+#endif
+        }
+
         // Scheduling configuration
         const char *getReadingSchedule() const override
         {
@@ -163,6 +175,7 @@ public:
         int getVolumeDivisor() const override { return 1; }
         float getFrequency() const override { return 433.82f; }
         bool isAutoScanEnabled() const override { return true; }
+        bool isSnifferMode() const override { return false; }
         const char *getReadingSchedule() const override { return "Monday-Friday"; }
         int getReadHourUTC() const override { return 10; }
         int getReadMinuteUTC() const override { return 0; }

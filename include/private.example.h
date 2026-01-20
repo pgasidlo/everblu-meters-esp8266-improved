@@ -148,6 +148,23 @@
 #define DEBUG_CC1101 0
 
 // ============================================================================
+// OPERATING MODE
+// ============================================================================
+
+// Mode selection:
+//   "query"   (default) - Normal operation: send wake-up, interrogate meter, receive response
+//   "sniffer" - Passive listening: capture trigger frames from other devices
+//
+// In sniffer mode, no transmission occurs. The device listens for trigger frames
+// (interrogation requests) sent by other readers and logs the meter_year and
+// meter_serial from each captured frame. Useful for:
+//   - Discovering meters in range
+//   - Monitoring other devices querying meters
+//   - Protocol analysis and debugging
+//
+#define OPERATING_MODE "query"
+
+// ============================================================================
 // READING RETRY CONFIGURATION
 // ============================================================================
 
