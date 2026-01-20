@@ -177,21 +177,22 @@ To configure your meter type, set `METER_TYPE` in `include/private.h`:
 #define METER_TYPE "gas"    // For gas meters
 ```
 
-#### Gas Meter Volume Divisor
+#### Volume Divisor
 
-For gas meters, this firmware assumes an internal count in liter-equivalents and converts those values to cubic meters (m³) before publishing to Home Assistant. If your gas meter uses a different base unit or scaling, you may need to adjust the meter configuration or conversion logic accordingly.
+This firmware supports a configurable volume divisor that can be used to scale meter readings. This is particularly useful for gas meters that need conversion from liters to cubic meters (m³).
 
-The conversion uses a configurable **gas volume divisor** that can be set in `include/private.h`:
+The conversion uses a configurable **volume divisor** that can be set in `include/private.h`:
 ```cpp
-// Default: 100 (equivalent to 0.01 m³ per unit)
-#define GAS_VOLUME_DIVISOR 100
+// Default: 1 (no conversion)
+#define VOLUME_DIVISOR 1
 ```
 
-**Important:** The correct divisor depends on your meter's pulse weight configuration:
+**Common settings:**
+- `1`: No conversion (default for water meters in liters)
 - `100`: 0.01 m³ per unit (typical for modern EverBlu Cyble gas modules)
 - `1000`: 0.001 m³ per unit (0.1 L per unit, less common)
 
-##### How We Determined the Correct Divisor
+##### How We Determined the Correct Divisor for Gas Meters
 
 Through empirical testing with an actual EverBlu Cyble gas meter, we discovered that many gas modules are configured with a pulse weight of **0.01 m³ per unit**, not the 0.001 m³ that might be expected from a naive "liters to cubic meters" conversion.
 
@@ -204,7 +205,7 @@ Through empirical testing with an actual EverBlu Cyble gas meter, we discovered 
 
 The gap of ~11 m³ is consistent with the assumption that the EverBlu module was installed after the meter had already recorded some consumption. Without access to the meter's installation records or multiple data points, we cannot definitively confirm the exact pulse weight; however, **0.01 m³/unit proved more plausible through trial and error comparison with the actual mechanical meter register**.
 
-**If your readings seem incorrect:** Verify your specific meter's pulse weight (often printed on the device label) and adjust `GAS_VOLUME_DIVISOR` accordingly.
+**If your readings seem incorrect:** Verify your specific meter's pulse weight (often printed on the device label) and adjust `VOLUME_DIVISOR` accordingly.
 
 ### 3. Build and upload the firmware
 
