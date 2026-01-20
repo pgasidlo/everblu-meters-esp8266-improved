@@ -40,12 +40,12 @@ public:
 #endif
         }
 
-        int getGasVolumeDivisor() const override
+        int getVolumeDivisor() const override
         {
-#ifdef GAS_VOLUME_DIVISOR
-                return GAS_VOLUME_DIVISOR;
+#ifdef VOLUME_DIVISOR
+                return VOLUME_DIVISOR;
 #else
-                return 100;
+                return 1;
 #endif
         }
 
@@ -160,7 +160,7 @@ public:
         uint8_t getMeterYear() const override { return 0; }
         uint32_t getMeterSerial() const override { return 0; }
         bool isMeterGas() const override { return false; }
-        int getGasVolumeDivisor() const override { return 100; }
+        int getVolumeDivisor() const override { return 1; }
         float getFrequency() const override { return 433.82f; }
         bool isAutoScanEnabled() const override { return true; }
         const char *getReadingSchedule() const override { return "Monday-Friday"; }

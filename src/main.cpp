@@ -83,11 +83,11 @@ static const unsigned long OFFLINE_LED_BLINK_MS = 500UL;
 #define ENABLE_MQTT_DEBUGGING 0 // Set to 1 to enable MQTT debugging messages
 #endif
 
-// Define gas volume divisor if missing from the private.h file
-// Converts internal liter count to cubic meters for gas meters
-// Default: 100 (equivalent to 0.01 m³ per unit)
-#ifndef GAS_VOLUME_DIVISOR
-#define GAS_VOLUME_DIVISOR 100
+// Define volume divisor if missing from the private.h file
+// Can be used to scale or convert readings as needed
+// Default: 1 (no conversion)
+#ifndef VOLUME_DIVISOR
+#define VOLUME_DIVISOR 1
 #endif
 
 // Define the default reading schedule if missing from the private.h file.
@@ -577,18 +577,18 @@ void onUpdateData()
   snprintf(timeEndFormatted, sizeof(timeEndFormatted), "%02d:00", timeEnd);
 
   // Use shared utility function to print meter data
-  printMeterDataSummary(&meter_data, meterIsGas, GAS_VOLUME_DIVISOR);
+  printMeterDataSummary(&meter_data, meterIsGas, VOLUME_DIVISOR);
 
   // Publish meter data to MQTT (using char buffers instead of String)
   // NOTE: meter_data.volume is the raw counter value from the meter (liters for water;
-  // for gas, this raw counter is converted to cubic meters using GAS_VOLUME_DIVISOR).
+  // for gas, this raw counter is converted to cubic meters using VOLUME_DIVISOR).
   char valueBuffer[32];
 
   if (meterIsGas)
   {
-    // Gas meters: publish value in m³ (volume / GAS_VOLUME_DIVISOR)
+    // Gas meters: publish value in m³ (volume / VOLUME_DIVISOR)
     // Default divisor 100 = 0.01 m³ per unit (typical EverBlu Cyble gas module)
-    float cubicMeters = meter_data.volume / (float)GAS_VOLUME_DIVISOR;
+    float cubicMeters = meter_data.volume / (float)VOLUME_DIVISOR;
     snprintf(valueBuffer, sizeof(valueBuffer), "%.3f", cubicMeters);
   }
   else

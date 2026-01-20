@@ -132,7 +132,7 @@ esphome run your-config.yaml
 | `read_minute` | int | 0 | No | Read minute (0-59) |
 | `max_retries` | int | 10 | No | Max read attempts |
 | `retry_cooldown` | duration | 1h | No | Cooldown time |
-| `gas_volume_divisor` | int | 100 | No | Gas divisor (100/1000) |
+| `volume_divisor` | int | 1 | No | Volume divisor (1/100/1000) |
 
 ### Schedule Options
 
@@ -404,7 +404,7 @@ everblu_meter:
   meter_type: gas
   gdo0_pin: 4
   time_id: ha_time
-  gas_volume_divisor: 100
+  volume_divisor: 100
   volume:
     name: "Gas Volume"
 ```
@@ -448,10 +448,10 @@ everblu_meter:
   auto_scan: false       # Disable auto-scan once optimal found
 ```
 
-**Wrong volume reading (gas meters):**
+**Wrong volume reading:**
 ```yaml
 everblu_meter:
-  gas_volume_divisor: 1000  # Try 100 or 1000
+  volume_divisor: 1000  # Try 1, 100, or 1000
 ```
 
 **Incorrect time or timezone:**

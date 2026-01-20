@@ -32,7 +32,7 @@ public:
     virtual uint8_t getMeterYear() const = 0;
     virtual uint32_t getMeterSerial() const = 0;
     virtual bool isMeterGas() const = 0;
-    virtual int getGasVolumeDivisor() const = 0;
+    virtual int getVolumeDivisor() const = 0;
 
     // RF configuration
     virtual float getFrequency() const = 0;

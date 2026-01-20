@@ -309,14 +309,15 @@ This checklist helps verify that the ESPHome integration works correctly across 
 
 ### Gas Configuration
 - [ ] Set meter_type to gas
-- [ ] Set gas_volume_divisor to 100
+- [ ] Set volume_divisor to 100
 - [ ] Volume shows in m³
 - [ ] Device class is gas
 - [ ] Icon is gas meter
 
-### Gas Volume Divisor
-- [ ] Try gas_volume_divisor=100
-- [ ] Try gas_volume_divisor=1000
+### Volume Divisor
+- [ ] Try volume_divisor=1
+- [ ] Try volume_divisor=100
+- [ ] Try volume_divisor=1000
 - [ ] Reading values make sense
 - [ ] Units display correctly
 

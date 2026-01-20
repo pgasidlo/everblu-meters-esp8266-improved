@@ -38,7 +38,7 @@ EverbluMeterTriggerButton = everblu_meter_ns.class_("EverbluMeterTriggerButton",
 CONF_METER_YEAR = "meter_year"
 CONF_METER_SERIAL = "meter_serial"
 CONF_METER_TYPE = "meter_type"
-CONF_GAS_VOLUME_DIVISOR = "gas_volume_divisor"
+CONF_VOLUME_DIVISOR = "volume_divisor"
 CONF_AUTO_SCAN = "auto_scan"
 CONF_READING_SCHEDULE = "reading_schedule"
 CONF_READ_HOUR = "read_hour"
@@ -106,7 +106,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_METER_TYPE, default=METER_TYPE_WATER): cv.enum(
                 {METER_TYPE_WATER: False, METER_TYPE_GAS: True}
             ),
-            cv.Optional(CONF_GAS_VOLUME_DIVISOR, default=100): cv.int_range(min=1, max=1000),
+            cv.Optional(CONF_VOLUME_DIVISOR, default=1): cv.int_range(min=1, max=1000),
             cv.Optional(CONF_FREQUENCY, default=433.82): cv.float_range(min=300.0, max=928.0),
             cv.Optional(CONF_AUTO_SCAN, default=True): cv.boolean,
             cv.Optional(CONF_READING_SCHEDULE, default=SCHEDULE_MONDAY_FRIDAY): cv.string,
@@ -275,6 +275,7 @@ async def to_code(config):
     cg.add_build_flag(f"-DMETER_YEAR={config[CONF_METER_YEAR]}")
     cg.add_build_flag(f"-DMETER_SERIAL={config[CONF_METER_SERIAL]}")
     cg.add_build_flag(f"-DGDO0={config[CONF_GDO0_PIN]}")
+    cg.add_build_flag(f"-DVOLUME_DIVISOR={config[CONF_VOLUME_DIVISOR]}")
     
     # Note: ESPHome automatically compiles all .cpp files in component directory
     # No need to explicitly list source files - just ensure main.cpp is excluded from release
@@ -283,7 +284,7 @@ async def to_code(config):
     cg.add(var.set_meter_year(config[CONF_METER_YEAR]))
     cg.add(var.set_meter_serial(config[CONF_METER_SERIAL]))
     cg.add(var.set_meter_type(config[CONF_METER_TYPE]))
-    cg.add(var.set_gas_volume_divisor(config[CONF_GAS_VOLUME_DIVISOR]))
+    cg.add(var.set_volume_divisor(config[CONF_VOLUME_DIVISOR]))
     cg.add(var.set_frequency(config[CONF_FREQUENCY]))
     cg.add(var.set_auto_scan(config[CONF_AUTO_SCAN]))
     cg.add(var.set_reading_schedule(config[CONF_READING_SCHEDULE]))
@@ -315,7 +316,8 @@ async def to_code(config):
         if "icon" not in volume_cfg:
             volume_cfg["icon"] = "mdi:gas-cylinder" if config[CONF_METER_TYPE] == METER_TYPE_GAS else "mdi:water"
         if "accuracy_decimals" not in volume_cfg:
-            volume_cfg["accuracy_decimals"] = 0
+            # Use 3 decimal places when volume_divisor > 1, otherwise 0
+            volume_cfg["accuracy_decimals"] = 3 if config[CONF_VOLUME_DIVISOR] > 1 else 0
         if "state_class" not in volume_cfg:
             volume_cfg["state_class"] = STATE_CLASS_TOTAL_INCREASING
         sens = await sensor.new_sensor(volume_cfg)

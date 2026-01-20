@@ -28,7 +28,7 @@ public:
     void setMeterYear(uint8_t year) { meter_year_ = year; }
     void setMeterSerial(uint32_t serial) { meter_serial_ = serial; }
     void setMeterType(bool isGas) { is_gas_ = isGas; }
-    void setGasVolumeDivisor(int divisor) { gas_volume_divisor_ = divisor; }
+    void setVolumeDivisor(int divisor) { volume_divisor_ = divisor; }
     void setFrequency(float freq) { frequency_ = freq; }
     void setAutoScanEnabled(bool enabled) { auto_scan_enabled_ = enabled; }
     void setReadingSchedule(const char *schedule);
@@ -44,7 +44,7 @@ public:
     uint8_t getMeterYear() const override { return meter_year_; }
     uint32_t getMeterSerial() const override { return meter_serial_; }
     bool isMeterGas() const override { return is_gas_; }
-    int getGasVolumeDivisor() const override { return gas_volume_divisor_; }
+    int getVolumeDivisor() const override { return volume_divisor_; }
     float getFrequency() const override { return frequency_; }
     bool isAutoScanEnabled() const override { return auto_scan_enabled_; }
     const char *getReadingSchedule() const override { return reading_schedule_; }
@@ -71,7 +71,7 @@ private:
     uint8_t meter_year_{0};
     uint32_t meter_serial_{0};
     bool is_gas_{false};
-    int gas_volume_divisor_{100};
+    int volume_divisor_{1};
 
     // RF configuration
     float frequency_{433.82f};

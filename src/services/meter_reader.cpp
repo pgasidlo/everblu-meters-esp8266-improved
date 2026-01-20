@@ -33,10 +33,10 @@ static const unsigned long RETRY_DELAY_MS = 5000;
 static void logReadableSummary(const tmeter_data &data, const IConfigProvider *config)
 {
     const bool isGas = config->isMeterGas();
-    int volumeDivisor = config->getGasVolumeDivisor();
+    int volumeDivisor = config->getVolumeDivisor();
     if (volumeDivisor <= 0)
     {
-        volumeDivisor = 100; // Sensible fallback for gas meters
+        volumeDivisor = 1; // Sensible fallback
     }
 
     // Use shared utility function to print meter data

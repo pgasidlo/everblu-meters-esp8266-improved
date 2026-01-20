@@ -185,11 +185,11 @@ everblu_meter:
 | `max_retries` | int | `10` | Maximum number of read attempts |
 | `retry_cooldown` | duration | `1h` | Cooldown between retry sessions |
 
-#### Gas Meter Specific
+#### Volume Divisor
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `gas_volume_divisor` | int | `100` | Volume divisor for gas meters (100 or 1000) |
+| `volume_divisor` | int | `1` | Volume divisor for meter readings (1, 100, or 1000) |
 
 ### Finding Your Meter Information
 
@@ -298,9 +298,9 @@ everblu_meter:
   meter_year: 22
   meter_serial: 87654321
   meter_type: gas
-  gas_volume_divisor: 100
+  volume_divisor: 100
   time_id: ha_time
-  
+
   volume:
     name: "Gas Volume"
     unit_of_measurement: "m³"

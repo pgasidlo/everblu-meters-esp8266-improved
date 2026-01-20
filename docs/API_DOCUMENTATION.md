@@ -38,7 +38,7 @@ Water/gas meter data structure containing current readings and metadata.
 | `history[13]` | `uint32_t[]` | Monthly historical readings (13 months), index 0 = oldest, 12 = most recent |
 | `history_available` | `bool` | True if historical data was successfully extracted |
 
-**Note on Gas Meters:** For gas meters, the `volume` field contains the raw reading in liters. The firmware automatically converts this to cubic meters (m³) using the `GAS_VOLUME_DIVISOR` configuration value (default: 100, equivalent to 0.01 m³ per unit).
+**Note on Gas Meters:** For gas meters, the `volume` field contains the raw reading in liters. The firmware automatically converts this to cubic meters (m³) using the `VOLUME_DIVISOR` configuration value (default: 1, no conversion; set to 100 for 0.01 m³ per unit).
 
 ### Functions
 

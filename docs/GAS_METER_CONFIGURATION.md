@@ -37,10 +37,10 @@ This configures Home Assistant device class, icons, and unit symbols appropriate
 
 ### Step 2: Configure Volume Divisor
 
-In `include/private.h`, set the `GAS_VOLUME_DIVISOR`:
+In `include/private.h`, set the `VOLUME_DIVISOR`:
 ```cpp
 // Default: 100 (0.01 m³ per unit)
-#define GAS_VOLUME_DIVISOR 100
+#define VOLUME_DIVISOR 100
 ```
 
 The divisor value depends on your meter's pulse weight configuration:
@@ -56,7 +56,7 @@ The divisor value depends on your meter's pulse weight configuration:
 The RADIAN protocol delivers a raw counter value in liters. The firmware converts this to cubic meters using:
 
 ```
-volume_m³ = raw_counter_liters / GAS_VOLUME_DIVISOR
+volume_m³ = raw_counter_liters / VOLUME_DIVISOR
 ```
 
 ### Pulse Weight vs. Divisor
@@ -137,7 +137,7 @@ This means the firmware is reading absolute consumption correctly; the differenc
 
 **Solution:**
 1. Verify your meter's pulse weight from the label or manufacturer documentation
-2. Update `GAS_VOLUME_DIVISOR` accordingly:
+2. Update `VOLUME_DIVISOR` accordingly:
    - If readings are 10x too high: increase divisor (1000 → ?)
    - If readings are 10x too low: decrease divisor (100 → ?)
 3. Rebuild and upload the firmware
@@ -180,7 +180,7 @@ This means the firmware is reading absolute consumption correctly; the differenc
 If your meter uses an uncommon pulse weight, you can calculate the correct divisor:
 
 ```
-GAS_VOLUME_DIVISOR = (RADIAN_counter_units / actual_volume_m³)
+VOLUME_DIVISOR = (RADIAN_counter_units / actual_volume_m³)
 ```
 
 **Example:** If your meter uses 0.1 m³ per unit:
@@ -188,7 +188,7 @@ GAS_VOLUME_DIVISOR = (RADIAN_counter_units / actual_volume_m³)
 - Actual volume: 8,141.5 m³
 - Divisor: 81,415 / 8,141.5 ≈ 10
 
-Then set: `#define GAS_VOLUME_DIVISOR 10`
+Then set: `#define VOLUME_DIVISOR 10`
 
 ---
 
@@ -196,7 +196,7 @@ Then set: `#define GAS_VOLUME_DIVISOR 10`
 
 | Task | Action |
 |------|--------|
-| Initial setup | Set `METER_TYPE "gas"` and `GAS_VOLUME_DIVISOR 100` |
+| Initial setup | Set `METER_TYPE "gas"` and `VOLUME_DIVISOR 100` |
 | Verify readings | Compare first RADIAN reading to meter register |
 | If readings are wrong | Check meter label for pulse weight, adjust divisor |
 | Monitor over time | Verify monthly consumption trends match physical meter |

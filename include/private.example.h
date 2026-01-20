@@ -96,19 +96,20 @@
 //           and converted to cubic meters (m³) for display and MQTT, device class gas
 #define METER_TYPE "water"
 
-// Gas meter volume divisor (only used when METER_TYPE is "gas")
+// Volume divisor (can be used with any meter type)
 //
-// The RADIAN protocol transmits meter readings in liters (L). For gas meters,
-// this divisor converts liters to cubic meters (m³).
+// The RADIAN protocol transmits meter readings in liters (L). This divisor
+// can be used to convert or scale the readings as needed.
 //
-// Default: 100 (equivalent to 0.01 m³ per unit)
+// Default: 1 (no conversion, readings in liters as-is)
 //
 // If your readings seem incorrect, verify your meter's pulse weight and adjust
 // this divisor accordingly:
-//   - 100: 0.01 m³ per unit (typical for modern gas meters)
+//   - 1: No conversion (default for water meters)
+//   - 100: 0.01 m³ per unit (typical for some gas meters)
 //   - 1000: 0.001 m³ per unit (0.1 L per unit)
 //
-#define GAS_VOLUME_DIVISOR 100
+#define VOLUME_DIVISOR 1
 
 // ============================================================================
 // RADIO / CC1101 CONFIGURATION

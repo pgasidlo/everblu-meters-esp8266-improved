@@ -21,13 +21,20 @@ ESPHomeDataPublisher::ESPHomeDataPublisher()
 void ESPHomeDataPublisher::publishMeterReading(const tmeter_data &data, const char *timestamp)
 {
 #ifdef USE_ESPHOME
-    ESP_LOGD(TAG_PUB, "Publishing meter reading: volume=%lu, battery=%.1f, counter=%lu", (unsigned long)data.volume, (double)data.battery_left, (unsigned long)data.reads_counter);
+    // Apply volume divisor from YAML config (passed via build flag)
+#ifndef VOLUME_DIVISOR
+#define VOLUME_DIVISOR 1
+#endif
+    float divided_volume = (VOLUME_DIVISOR > 1) ? (data.volume / (float)VOLUME_DIVISOR) : (float)data.volume;
+
+    ESP_LOGD(TAG_PUB, "Publishing meter reading: raw_volume=%lu, divisor=%d, volume=%.3f, battery=%.1f, counter=%lu",
+             (unsigned long)data.volume, VOLUME_DIVISOR, divided_volume, (double)data.battery_left, (unsigned long)data.reads_counter);
     have_last_volume_ = true;
     last_volume_ = data.volume;
-    // Publish main meter reading
+    // Publish main meter reading (with divisor applied)
     if (volume_sensor_)
     {
-        volume_sensor_->publish_state(data.volume);
+        volume_sensor_->publish_state(divided_volume);
     }
 
     if (battery_sensor_)
