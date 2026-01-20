@@ -28,7 +28,8 @@ bool ScheduleManager::isValidSchedule(const char *schedule)
 {
     return (strcmp(schedule, "Monday-Friday") == 0 ||
             strcmp(schedule, "Monday-Saturday") == 0 ||
-            strcmp(schedule, "Monday-Sunday") == 0);
+            strcmp(schedule, "Monday-Sunday") == 0 ||
+            strcmp(schedule, "None") == 0);
 }
 
 void ScheduleManager::setSchedule(const char *schedule)
@@ -54,6 +55,12 @@ bool ScheduleManager::isReadingDay(struct tm *ptm)
 {
     if (!ptm)
         return false;
+
+    // "None" schedule disables all automatic readings
+    if (strcmp(s_schedule, "None") == 0)
+    {
+        return false;
+    }
 
     // ptm->tm_wday: 0=Sunday, 1=Monday, ..., 6=Saturday
     int dayOfWeek = ptm->tm_wday;

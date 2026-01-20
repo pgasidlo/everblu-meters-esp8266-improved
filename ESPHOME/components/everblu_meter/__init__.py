@@ -91,6 +91,7 @@ SCHEDULE_MONDAY_FRIDAY = "Monday-Friday"
 SCHEDULE_MONDAY_SATURDAY = "Saturday"
 SCHEDULE_MONDAY_SUNDAY = "Sunday"
 SCHEDULE_EVERYDAY = "Everyday"
+SCHEDULE_NONE = "None"  # Disables automatic scheduled readings
 
 CONF_GDO0_PIN = "gdo0_pin"
 

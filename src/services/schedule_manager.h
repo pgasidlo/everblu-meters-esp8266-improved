@@ -21,10 +21,11 @@
  * @brief Manages daily meter reading schedules with timezone support
  *
  * Provides reading schedule validation, timezone conversion, and automatic
- * alignment to meter wake windows. Supports three reading patterns:
+ * alignment to meter wake windows. Supports four reading patterns:
  * - "Monday-Friday" (weekdays only)
  * - "Monday-Saturday" (weekdays plus Saturday)
  * - "Monday-Sunday" (daily)
+ * - "None" (disables automatic scheduled readings entirely)
  */
 class ScheduleManager
 {
@@ -32,7 +33,7 @@ public:
     /**
      * @brief Initialize schedule manager
      *
-     * @param schedule Reading schedule string ("Monday-Friday", "Monday-Saturday", "Monday-Sunday")
+     * @param schedule Reading schedule string ("Monday-Friday", "Monday-Saturday", "Monday-Sunday", "None")
      * @param readHourUtc Initial reading hour in UTC (0-23)
      * @param readMinuteUtc Initial reading minute in UTC (0-59)
      * @param timezoneOffsetMinutes Timezone offset from UTC in minutes (positive for east, negative for west)
@@ -43,7 +44,7 @@ public:
      * @brief Validate a reading schedule string
      *
      * @param schedule Schedule string to validate
-     * @return true if schedule is valid ("Monday-Friday", "Monday-Saturday", or "Monday-Sunday")
+     * @return true if schedule is valid ("Monday-Friday", "Monday-Saturday", "Monday-Sunday", or "None")
      */
     static bool isValidSchedule(const char *schedule);
 
