@@ -1518,10 +1518,15 @@ struct tmeter_data get_meter_data(void)
   memset(meter_data, 0, sizeof(meter_data)); // Clear static buffer
 
   uint8_t txbuffer[100];
-  Make_Radian_Master_req(txbuffer, METER_YEAR, METER_SERIAL);
+  int txLen = Make_Radian_Master_req(txbuffer, METER_YEAR, METER_SERIAL);
 
   echo_debug(1, "[METER] Transmitting wake-up + interrogation (Year=%d, Serial=%lu)...\n",
              METER_YEAR, (unsigned long)METER_SERIAL);
+  echo_debug(1, "[METER] Trigger frame (%d bytes):\n", txLen);
+  echo_debug(1, "  sync_pattern (9 bytes): ");
+  show_in_hex_one_line(txbuffer, 9);
+  echo_debug(1, "  encoded_frame (%d bytes): ", txLen - 9);
+  show_in_hex_one_line(&txbuffer[9], txLen > 9 ? txLen - 9 : 0);
   halRfWriteReg(MDMCFG2, MDMCFG2_NO_PREAMBLE_SYNC);  // No preamble/sync for WUP
   halRfWriteReg(PKTCTRL0, PKTCTRL0_INFINITE_LENGTH); // Infinite packet length
   SPIWriteBurstReg(TX_FIFO_ADDR, wupbuffer, 8);
@@ -1655,9 +1660,17 @@ struct tmeter_data get_meter_data(void)
  * @brief Configure CC1101 for sniffer mode (listening for trigger frames)
  *
  * Sets up the radio to detect trigger frames using:
- * - Sync word: 0x5550 (trigger frame preamble pattern)
- * - Data rate: 9.6 kbps (4x oversampling of 2.4 kbps transmission)
+ * - Sync word: 0xFFFF (frame start marker from sync_pattern tail)
+ * - Data rate: 2.4 kbps (matching transmission rate)
  * - Infinite packet length mode for variable frame sizes
+ *
+ * Trigger frame transmission structure:
+ * 1. WUP: ~2 sec of 0x55 bytes (preamble wake-up pattern)
+ * 2. sync_pattern: {0x50, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFF, 0xFF, 0xFF}
+ * 3. Encoded frame: serial-encoded meter request data
+ *
+ * By using sync word 0xFFFF, we detect the frame start marker (0xFF bytes)
+ * at the end of sync_pattern and immediately receive the encoded frame.
  */
 void sniffer_configure_rx(void)
 {
@@ -1666,13 +1679,14 @@ void sniffer_configure_rx(void)
   CC1101_CMD(SIDLE);
   CC1101_CMD(SFRX);
 
-  // Configure sync word to detect trigger frame preamble (0x5550)
-  halRfWriteReg(SYNC1, SYNC1_PATTERN_55); // 0x55
-  halRfWriteReg(SYNC0, SYNC0_PATTERN_50); // 0x50
+  // Configure sync word to detect frame start marker (0xFFFF)
+  // This matches the 0xFF, 0xFF, 0xFF, 0xFF at end of sync_pattern
+  halRfWriteReg(SYNC1, SYNC1_PATTERN_FF); // 0xFF
+  halRfWriteReg(SYNC0, SYNC1_PATTERN_FF); // 0xFF
 
-  // Configure for 4x oversampled reception (9.6 kbps)
-  // Trigger frames are transmitted at 2.4 kbps with 4x oversampling
-  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ_9_6KBPS);
+  // Configure for 2.4 kbps reception (matching transmission rate)
+  // Trigger frames are transmitted at 2.4 kbps with serial-encoded data
+  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ);
   halRfWriteReg(MDMCFG3, MDMCFG3_DRATE_2_4KBPS);
   halRfWriteReg(MDMCFG2, MDMCFG2_2FSK_16_16_SYNC);
 
@@ -1778,10 +1792,33 @@ bool sniffer_listen(struct detected_meter *detected, int timeout_ms)
     return false;
   }
 
-  echo_debug(debug_out, "[SNIFFER] Received %d raw bytes\n", rxLen);
+  echo_debug(1, "[SNIFFER] Received %d raw bytes\n", rxLen);
+  if (debug_out && rxLen > 0)
+  {
+    echo_debug(1, "[SNIFFER] Raw data (first 32 bytes): ");
+    show_in_hex_one_line(rxBuffer, rxLen > 32 ? 32 : rxLen);
+  }
 
-  // Decode the 4x oversampled data
-  uint8_t decodedLen = decode_4bitpbit_serial(rxBuffer, rxLen, decoded);
+  // Skip any leading 0xFF bytes (residual from sync_pattern tail after sync detection)
+  uint16_t dataStart = 0;
+  while (dataStart < rxLen && rxBuffer[dataStart] == 0xFF)
+  {
+    dataStart++;
+  }
+
+  if (dataStart > 0)
+  {
+    echo_debug(1, "[SNIFFER] Skipped %d leading 0xFF bytes\n", dataStart);
+  }
+
+  if (rxLen - dataStart < MIN_RAW_BYTES)
+  {
+    echo_debug(debug_out, "[SNIFFER] Data after sync too short: %d bytes\n", rxLen - dataStart);
+    return false;
+  }
+
+  // Decode the serial-encoded data (1 start + 8 data + 3 stop bits encoding)
+  uint8_t decodedLen = decode_4bitpbit_serial(&rxBuffer[dataStart], rxLen - dataStart, decoded);
 
   if (decodedLen < MIN_DECODED_BYTES)
   {
