@@ -1657,6 +1657,122 @@ struct tmeter_data get_meter_data(void)
 // ============================================================================
 
 /**
+ * @brief Reverse 4x oversampling to recover transmitted bytes
+ *
+ * When receiving at 9.6 kbps while transmission is at 2.4 kbps, each transmitted
+ * bit appears as 4 received samples. This function reverses that:
+ * - Groups of 4 samples → 1 bit (using majority vote)
+ * - 8 bits → 1 byte (MSB first as transmitted)
+ *
+ * @param input 4x oversampled raw data
+ * @param input_len Length of input buffer
+ * @param output Buffer for recovered bytes (must be at least input_len/4)
+ * @return Number of bytes recovered
+ */
+static uint8_t sniffer_reverse_4x_oversampling(uint8_t *input, uint16_t input_len, uint8_t *output)
+{
+  uint8_t output_len = 0;
+  uint8_t current_byte = 0;
+  uint8_t bit_count = 0;
+
+  // Process input as a bit stream, 4 bits at a time
+  for (uint16_t i = 0; i < input_len; i++)
+  {
+    uint8_t byte_val = input[i];
+
+    // Process each nibble (4 bits = 1 transmitted bit after oversampling)
+    for (int nibble = 1; nibble >= 0; nibble--)
+    {
+      uint8_t n = (byte_val >> (nibble * 4)) & 0x0F;
+
+      // Majority vote: count 1s in the nibble
+      uint8_t ones = 0;
+      ones += (n & 1);
+      ones += ((n >> 1) & 1);
+      ones += ((n >> 2) & 1);
+      ones += ((n >> 3) & 1);
+
+      // 2 or more 1s = transmitted bit was 1
+      uint8_t bit = (ones >= 2) ? 1 : 0;
+
+      // Build output byte MSB first (as transmitted)
+      current_byte = (current_byte << 1) | bit;
+      bit_count++;
+
+      if (bit_count == 8)
+      {
+        output[output_len++] = current_byte;
+        current_byte = 0;
+        bit_count = 0;
+      }
+    }
+  }
+
+  return output_len;
+}
+
+/**
+ * @brief Decode serial-encoded frame (1 start + 8 data + 3 stop bits per byte)
+ *
+ * The trigger frame uses encode2serial_1_3 which encodes each byte as 12 bits:
+ * - 1 start bit (0)
+ * - 8 data bits (LSB first)
+ * - 3 stop bits (111)
+ *
+ * @param encoded Encoded byte stream
+ * @param encoded_len Length of encoded data
+ * @param decoded Buffer for decoded bytes
+ * @return Number of decoded bytes
+ */
+static uint8_t sniffer_decode_serial(uint8_t *encoded, uint8_t encoded_len, uint8_t *decoded)
+{
+  uint8_t decoded_len = 0;
+  uint16_t bit_pos = 0;
+  uint16_t total_bits = encoded_len * 8;
+
+  while (bit_pos + 12 <= total_bits && decoded_len < 64)
+  {
+    // Get bit at position
+    auto get_bit = [&](uint16_t pos) -> uint8_t
+    {
+      uint8_t byte_idx = pos / 8;
+      uint8_t bit_idx = 7 - (pos % 8); // MSB first
+      return (encoded[byte_idx] >> bit_idx) & 1;
+    };
+
+    // Check start bit (should be 0)
+    if (get_bit(bit_pos) != 0)
+    {
+      // Not a start bit, try next bit
+      bit_pos++;
+      continue;
+    }
+
+    // Extract 8 data bits (LSB first)
+    uint8_t data_byte = 0;
+    for (int i = 0; i < 8; i++)
+    {
+      if (get_bit(bit_pos + 1 + i))
+      {
+        data_byte |= (1 << i);
+      }
+    }
+
+    // Check stop bits (should be 111)
+    bool stop_ok = get_bit(bit_pos + 9) && get_bit(bit_pos + 10) && get_bit(bit_pos + 11);
+    if (!stop_ok)
+    {
+      echo_debug(debug_out, "[SNIFFER] Stop bit error at pos %d\n", bit_pos);
+    }
+
+    decoded[decoded_len++] = data_byte;
+    bit_pos += 12; // Move to next byte
+  }
+
+  return decoded_len;
+}
+
+/**
  * @brief Configure CC1101 for sniffer mode (listening for trigger frames)
  *
  * Sets up the radio to detect trigger frames using:
@@ -1671,7 +1787,7 @@ struct tmeter_data get_meter_data(void)
  *
  * By using sync word 0xFFFF, we detect the frame start marker (0xFF bytes)
  * at the end of sync_pattern. The 9.6 kbps reception rate provides 4 samples
- * per transmitted bit, which is required by decode_4bitpbit_serial().
+ * per transmitted bit for reliable decoding via sniffer_reverse_4x_oversampling().
  */
 void sniffer_configure_rx(void)
 {
@@ -1818,8 +1934,25 @@ bool sniffer_listen(struct detected_meter *detected, int timeout_ms)
     return false;
   }
 
-  // Decode the serial-encoded data (1 start + 8 data + 3 stop bits encoding)
-  uint8_t decodedLen = decode_4bitpbit_serial(&rxBuffer[dataStart], rxLen - dataStart, decoded);
+  // Stage 1: Reverse 4x oversampling to recover encoded_frame bytes
+  static uint8_t encoded_frame[64];
+  uint8_t encodedLen = sniffer_reverse_4x_oversampling(&rxBuffer[dataStart], rxLen - dataStart, encoded_frame);
+
+  echo_debug(1, "[SNIFFER] Recovered %d encoded bytes from %d raw bytes\n", encodedLen, rxLen - dataStart);
+  if (encodedLen > 0)
+  {
+    echo_debug(1, "[SNIFFER] Encoded frame (first 32): ");
+    show_in_hex_one_line(encoded_frame, encodedLen > 32 ? 32 : encodedLen);
+  }
+
+  if (encodedLen < 20)
+  {
+    echo_debug(debug_out, "[SNIFFER] Encoded frame too short: %d bytes\n", encodedLen);
+    return false;
+  }
+
+  // Stage 2: Decode serial encoding (1 start + 8 data + 3 stop bits per byte)
+  uint8_t decodedLen = sniffer_decode_serial(encoded_frame, encodedLen, decoded);
 
   if (decodedLen < MIN_DECODED_BYTES)
   {
@@ -1827,10 +1960,11 @@ bool sniffer_listen(struct detected_meter *detected, int timeout_ms)
     return false;
   }
 
-  echo_debug(debug_out, "[SNIFFER] Decoded %d bytes\n", decodedLen);
-  if (debug_out)
+  echo_debug(1, "[SNIFFER] Decoded %d original bytes\n", decodedLen);
+  if (decodedLen > 0)
   {
-    show_in_hex_one_line(decoded, decodedLen);
+    echo_debug(1, "[SNIFFER] Original frame: ");
+    show_in_hex_one_line(decoded, decodedLen > 20 ? 20 : decodedLen);
   }
 
   // Validate trigger frame structure
