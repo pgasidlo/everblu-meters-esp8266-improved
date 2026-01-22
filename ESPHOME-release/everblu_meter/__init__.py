@@ -7,7 +7,7 @@ using the RADIAN protocol over 433 MHz with a CC1101 transceiver.
 
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import sensor, text_sensor, binary_sensor, button, time as time_
+from esphome.components import sensor, text_sensor, binary_sensor, button, number, time as time_
 from esphome.const import (
     CONF_ID,
     CONF_FREQUENCY,
@@ -25,7 +25,7 @@ from esphome.const import (
 
 DEPENDENCIES = ["time"]
 CODEOWNERS = ["@your-github-username"]
-AUTO_LOAD = ["sensor", "text_sensor", "binary_sensor", "button"]
+AUTO_LOAD = ["sensor", "text_sensor", "binary_sensor", "button", "number"]
 
 # Tell ESPHome to include all source files in src/ subdirectories
 MULTI_CONF = False
@@ -33,6 +33,8 @@ MULTI_CONF = False
 everblu_meter_ns = cg.esphome_ns.namespace("everblu_meter")
 EverbluMeterComponent = everblu_meter_ns.class_("EverbluMeterComponent", cg.PollingComponent)
 EverbluMeterTriggerButton = everblu_meter_ns.class_("EverbluMeterTriggerButton", button.Button)
+EverbluMeterYearNumber = everblu_meter_ns.class_("EverbluMeterYearNumber", number.Number)
+EverbluMeterSerialNumber = everblu_meter_ns.class_("EverbluMeterSerialNumber", number.Number)
 
 # Configuration keys
 CONF_METER_YEAR = "meter_year"
@@ -86,6 +88,10 @@ CONF_TUNED_FREQUENCY = "tuned_frequency"
 CONF_REQUEST_READING_BUTTON = "request_reading_button"
 CONF_FREQUENCY_SCAN_BUTTON = "frequency_scan_button"
 CONF_RESET_FREQUENCY_BUTTON = "reset_frequency_button"
+
+# Editable number entities (for runtime configuration in query mode)
+CONF_METER_YEAR_NUMBER = "meter_year_number"
+CONF_METER_SERIAL_NUMBER = "meter_serial_number"
 
 # Sniffer sensors
 CONF_SNIFFER_DETECTION = "sniffer_detection"
@@ -292,6 +298,17 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_MEASUREMENT,
                 icon="mdi:signal",
+            ),
+            # Editable number entities (for runtime meter configuration in query mode)
+            cv.Optional(CONF_METER_YEAR_NUMBER): number.number_schema(
+                EverbluMeterYearNumber,
+                icon="mdi:calendar",
+                entity_category="config",
+            ),
+            cv.Optional(CONF_METER_SERIAL_NUMBER): number.number_schema(
+                EverbluMeterSerialNumber,
+                icon="mdi:barcode",
+                entity_category="config",
             ),
         }
     )
@@ -513,3 +530,24 @@ async def to_code(config):
     if CONF_SNIFFER_LQI in config:
         sens = await sensor.new_sensor(config[CONF_SNIFFER_LQI])
         cg.add(var.set_sniffer_lqi_sensor(sens))
+
+    # Register editable number entities
+    if CONF_METER_YEAR_NUMBER in config:
+        num = await number.new_number(
+            config[CONF_METER_YEAR_NUMBER],
+            min_value=0,
+            max_value=99,
+            step=1,
+        )
+        cg.add(num.set_parent(var))
+        cg.add(var.set_meter_year_number(num))
+
+    if CONF_METER_SERIAL_NUMBER in config:
+        num = await number.new_number(
+            config[CONF_METER_SERIAL_NUMBER],
+            min_value=0,
+            max_value=4294967295,  # uint32_t max
+            step=1,
+        )
+        cg.add(num.set_parent(var))
+        cg.add(var.set_meter_serial_number(num))

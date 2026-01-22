@@ -16,11 +16,13 @@
 // esphome/* includes when working within ESPHome.
 
 #include "esphome/core/component.h"
+#include "esphome/core/preferences.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/button/button.h"
+#include "esphome/components/number/number.h"
 
 #ifdef USE_API
 #include "esphome/components/api/api_server.h"
@@ -54,6 +56,30 @@ namespace esphome
             EverbluMeterComponent *parent_{nullptr};
             bool is_frequency_scan_{false};
             bool is_reset_frequency_{false};
+        };
+
+        class EverbluMeterYearNumber : public number::Number
+        {
+        public:
+            void set_parent(EverbluMeterComponent *parent) { parent_ = parent; }
+
+        protected:
+            void control(float value) override;
+
+        private:
+            EverbluMeterComponent *parent_{nullptr};
+        };
+
+        class EverbluMeterSerialNumber : public number::Number
+        {
+        public:
+            void set_parent(EverbluMeterComponent *parent) { parent_ = parent; }
+
+        protected:
+            void control(float value) override;
+
+        private:
+            EverbluMeterComponent *parent_{nullptr};
         };
 
         class EverbluMeterComponent : public PollingComponent
@@ -130,6 +156,14 @@ namespace esphome
             void request_frequency_scan();
             void request_reset_frequency();
 
+            // Runtime configuration updates (for editable number entities)
+            void update_meter_year(uint8_t year);
+            void update_meter_serial(uint32_t serial);
+
+            // Number component setters
+            void set_meter_year_number(EverbluMeterYearNumber *number) { meter_year_number_ = number; }
+            void set_meter_serial_number(EverbluMeterSerialNumber *number) { meter_serial_number_ = number; }
+
         protected:
             // Configuration
             uint8_t meter_year_{0};
@@ -202,6 +236,16 @@ namespace esphome
             bool meter_initialized_{false};
             bool last_api_client_count_{false};
             uint32_t wifi_ready_at_{0};
+
+            // Editable number components
+            EverbluMeterYearNumber *meter_year_number_{nullptr};
+            EverbluMeterSerialNumber *meter_serial_number_{nullptr};
+
+            // Preferences for persistent storage
+            ESPPreferenceObject pref_meter_year_;
+            ESPPreferenceObject pref_meter_serial_;
+            void load_preferences_();
+            void save_preferences_();
         };
 
     } // namespace everblu_meter

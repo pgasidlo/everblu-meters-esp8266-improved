@@ -43,6 +43,30 @@ namespace esphome
             }
         }
 
+        void EverbluMeterYearNumber::control(float value)
+        {
+            if (parent_ == nullptr)
+            {
+                ESP_LOGW(TAG, "Year number changed but parent not set");
+                return;
+            }
+            uint8_t year = static_cast<uint8_t>(value);
+            parent_->update_meter_year(year);
+            publish_state(value);
+        }
+
+        void EverbluMeterSerialNumber::control(float value)
+        {
+            if (parent_ == nullptr)
+            {
+                ESP_LOGW(TAG, "Serial number changed but parent not set");
+                return;
+            }
+            uint32_t serial = static_cast<uint32_t>(value);
+            parent_->update_meter_serial(serial);
+            publish_state(value);
+        }
+
         void EverbluMeterComponent::setup()
         {
             ESP_LOGCONFIG(TAG, "Setting up EverBlu Meter...");
@@ -50,6 +74,9 @@ namespace esphome
             // Reset initialization state on every setup (after reboot/OTA)
             meter_initialized_ = false;
             wifi_ready_at_ = 0;
+
+            // Load saved meter configuration from flash (if available)
+            load_preferences_();
 
             // Create config provider and configure it
             config_provider_ = new ESPHomeConfigProvider();
@@ -344,6 +371,117 @@ namespace esphome
             LOG_TEXT_SENSOR("    ", "History", history_sensor_);
             LOG_BINARY_SENSOR("    ", "Active Reading", active_reading_sensor_);
             LOG_BINARY_SENSOR("    ", "Radio Connected", radio_connected_sensor_);
+        }
+
+        void EverbluMeterComponent::update_meter_year(uint8_t year)
+        {
+            ESP_LOGI(TAG, "Updating meter year: %u -> %u", meter_year_, year);
+            meter_year_ = year;
+
+            // Update config provider if available
+            if (config_provider_ != nullptr)
+            {
+                config_provider_->setMeterYear(year);
+            }
+
+            // Save to flash
+            save_preferences_();
+
+            // Update text sensor display
+            if (data_publisher_ != nullptr)
+            {
+                char reading_time_buf[6];
+                snprintf(reading_time_buf, sizeof(reading_time_buf), "%02d:%02d", read_hour_, read_minute_);
+                data_publisher_->publishMeterSettings(
+                    meter_year_,
+                    meter_serial_,
+                    reading_schedule_.c_str(),
+                    reading_time_buf,
+                    frequency_);
+            }
+        }
+
+        void EverbluMeterComponent::update_meter_serial(uint32_t serial)
+        {
+            ESP_LOGI(TAG, "Updating meter serial: %lu -> %lu", (unsigned long)meter_serial_, (unsigned long)serial);
+            meter_serial_ = serial;
+
+            // Update config provider if available
+            if (config_provider_ != nullptr)
+            {
+                config_provider_->setMeterSerial(serial);
+            }
+
+            // Save to flash
+            save_preferences_();
+
+            // Update text sensor display
+            if (data_publisher_ != nullptr)
+            {
+                char reading_time_buf[6];
+                snprintf(reading_time_buf, sizeof(reading_time_buf), "%02d:%02d", read_hour_, read_minute_);
+                data_publisher_->publishMeterSettings(
+                    meter_year_,
+                    meter_serial_,
+                    reading_schedule_.c_str(),
+                    reading_time_buf,
+                    frequency_);
+            }
+        }
+
+        void EverbluMeterComponent::load_preferences_()
+        {
+            // Use component's object_id hash as preference key base
+            uint32_t hash = fnv1_hash("everblu_meter");
+
+            pref_meter_year_ = global_preferences->make_preference<uint8_t>(hash + 1);
+            pref_meter_serial_ = global_preferences->make_preference<uint32_t>(hash + 2);
+
+            uint8_t saved_year;
+            uint32_t saved_serial;
+
+            if (pref_meter_year_.load(&saved_year))
+            {
+                ESP_LOGI(TAG, "Loaded meter_year from flash: %u (YAML default: %u)", saved_year, meter_year_);
+                meter_year_ = saved_year;
+            }
+            else
+            {
+                ESP_LOGD(TAG, "No saved meter_year, using YAML value: %u", meter_year_);
+            }
+
+            if (pref_meter_serial_.load(&saved_serial))
+            {
+                ESP_LOGI(TAG, "Loaded meter_serial from flash: %lu (YAML default: %lu)",
+                         (unsigned long)saved_serial, (unsigned long)meter_serial_);
+                meter_serial_ = saved_serial;
+            }
+            else
+            {
+                ESP_LOGD(TAG, "No saved meter_serial, using YAML value: %lu", (unsigned long)meter_serial_);
+            }
+
+            // Initialize number entities with current values (after load)
+            if (meter_year_number_ != nullptr)
+            {
+                meter_year_number_->publish_state(meter_year_);
+            }
+            if (meter_serial_number_ != nullptr)
+            {
+                meter_serial_number_->publish_state(meter_serial_);
+            }
+        }
+
+        void EverbluMeterComponent::save_preferences_()
+        {
+            if (pref_meter_year_.save(&meter_year_))
+            {
+                ESP_LOGD(TAG, "Saved meter_year to flash: %u", meter_year_);
+            }
+            if (pref_meter_serial_.save(&meter_serial_))
+            {
+                ESP_LOGD(TAG, "Saved meter_serial to flash: %lu", (unsigned long)meter_serial_);
+            }
         }
 
     } // namespace everblu_meter
