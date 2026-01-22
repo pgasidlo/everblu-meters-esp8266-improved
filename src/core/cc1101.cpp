@@ -1661,16 +1661,17 @@ struct tmeter_data get_meter_data(void)
  *
  * Sets up the radio to detect trigger frames using:
  * - Sync word: 0xFFFF (frame start marker from sync_pattern tail)
- * - Data rate: 2.4 kbps (matching transmission rate)
+ * - Data rate: 9.6 kbps (4x oversampling of 2.4 kbps transmission)
  * - Infinite packet length mode for variable frame sizes
  *
  * Trigger frame transmission structure:
  * 1. WUP: ~2 sec of 0x55 bytes (preamble wake-up pattern)
  * 2. sync_pattern: {0x50, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFF, 0xFF, 0xFF}
- * 3. Encoded frame: serial-encoded meter request data
+ * 3. Encoded frame: serial-encoded meter request data (encode2serial_1_3)
  *
  * By using sync word 0xFFFF, we detect the frame start marker (0xFF bytes)
- * at the end of sync_pattern and immediately receive the encoded frame.
+ * at the end of sync_pattern. The 9.6 kbps reception rate provides 4 samples
+ * per transmitted bit, which is required by decode_4bitpbit_serial().
  */
 void sniffer_configure_rx(void)
 {
@@ -1684,9 +1685,9 @@ void sniffer_configure_rx(void)
   halRfWriteReg(SYNC1, SYNC1_PATTERN_FF); // 0xFF
   halRfWriteReg(SYNC0, SYNC1_PATTERN_FF); // 0xFF
 
-  // Configure for 2.4 kbps reception (matching transmission rate)
-  // Trigger frames are transmitted at 2.4 kbps with serial-encoded data
-  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ);
+  // Configure for 9.6 kbps reception (4x oversampling of 2.4 kbps transmission)
+  // This gives us 4 samples per transmitted bit, required by decode_4bitpbit_serial
+  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ_9_6KBPS);
   halRfWriteReg(MDMCFG3, MDMCFG3_DRATE_2_4KBPS);
   halRfWriteReg(MDMCFG2, MDMCFG2_2FSK_16_16_SYNC);
 
