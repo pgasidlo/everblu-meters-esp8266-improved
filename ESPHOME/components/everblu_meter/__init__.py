@@ -304,12 +304,16 @@ CONFIG_SCHEMA = (
                 EverbluMeterYearNumber,
                 icon="mdi:calendar",
                 entity_category="config",
-            ),
+            ).extend({
+                cv.Optional("mode", default="box"): cv.enum(number.NUMBER_MODES, upper=True),
+            }),
             cv.Optional(CONF_METER_SERIAL_NUMBER): number.number_schema(
                 EverbluMeterSerialNumber,
                 icon="mdi:barcode",
                 entity_category="config",
-            ),
+            ).extend({
+                cv.Optional("mode", default="box"): cv.enum(number.NUMBER_MODES, upper=True),
+            }),
         }
     )
     .extend(cv.polling_component_schema("24h"))
