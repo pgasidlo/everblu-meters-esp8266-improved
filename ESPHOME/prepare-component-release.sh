@@ -28,6 +28,8 @@ fi
 # Clear any existing release output to ensure a clean package
 if [ -d "$RELEASE_ROOT" ]; then
     echo "Clearing existing release directory..."
+    # Restore write permissions first (files are set read-only at end of script)
+    chmod -R u+w "$RELEASE_ROOT" 2>/dev/null || true
     rm -rf "$RELEASE_ROOT"
 fi
 
