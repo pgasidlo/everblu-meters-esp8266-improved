@@ -85,6 +85,20 @@ bool cc1101_init(float freq);
 void cc1101_rec_mode(void);
 
 /**
+ * @brief Set target meter identification for queries
+ *
+ * Sets the meter year and serial number to use when sending interrogation frames.
+ * This allows runtime configuration of the target meter, overriding compile-time
+ * METER_YEAR and METER_SERIAL defaults.
+ *
+ * Call this before get_meter_data() to query a specific meter.
+ *
+ * @param year 2-digit year from meter label (e.g., 23 for 2023)
+ * @param serial Meter serial number (up to 24 bits / 8 digits)
+ */
+void set_meter_target(uint8_t year, uint32_t serial);
+
+/**
  * @brief Read data from Everblu Cyble water/gas meter
  *
  * Performs a complete read cycle:
@@ -93,6 +107,9 @@ void cc1101_rec_mode(void);
  * 3. Decodes received data including current reading and history
  * 4. Validates CRC and data integrity
  * 5. Extracts signal quality metrics (RSSI, LQI, frequency offset)
+ *
+ * Uses meter year/serial set by set_meter_target(), or falls back to
+ * compile-time METER_YEAR/METER_SERIAL if not set.
  *
  * This is a blocking operation that may take several seconds to complete.
  *

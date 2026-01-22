@@ -58,6 +58,19 @@ uint8_t CC1101_status_FIFO_ReadByte = 0;
 #endif
 static const uint8_t debug_out = (uint8_t)(DEBUG_CC1101);
 
+// Runtime-configurable meter target (overrides compile-time METER_YEAR/METER_SERIAL)
+static uint8_t s_runtime_meter_year = 0;
+static uint32_t s_runtime_meter_serial = 0;
+static bool s_use_runtime_target = false;
+
+void set_meter_target(uint8_t year, uint32_t serial)
+{
+  s_runtime_meter_year = year;
+  s_runtime_meter_serial = serial;
+  s_use_runtime_target = true;
+  echo_debug(1, "[CC1101] Runtime meter target set: Year=%d, Serial=%lu\n", year, (unsigned long)serial);
+}
+
 #ifndef TRUE
 #define TRUE true
 #endif
@@ -1517,11 +1530,15 @@ struct tmeter_data get_meter_data(void)
   memset(rxBuffer, 0, sizeof(rxBuffer));     // Clear static buffer
   memset(meter_data, 0, sizeof(meter_data)); // Clear static buffer
 
+  // Use runtime target if set, otherwise fall back to compile-time macros
+  uint8_t target_year = s_use_runtime_target ? s_runtime_meter_year : METER_YEAR;
+  uint32_t target_serial = s_use_runtime_target ? s_runtime_meter_serial : METER_SERIAL;
+
   uint8_t txbuffer[100];
-  int txLen = Make_Radian_Master_req(txbuffer, METER_YEAR, METER_SERIAL);
+  int txLen = Make_Radian_Master_req(txbuffer, target_year, target_serial);
 
   echo_debug(1, "[METER] Transmitting wake-up + interrogation (Year=%d, Serial=%lu)...\n",
-             METER_YEAR, (unsigned long)METER_SERIAL);
+             target_year, (unsigned long)target_serial);
   echo_debug(1, "[METER] Trigger frame (%d bytes):\n", txLen);
   echo_debug(1, "  sync_pattern (9 bytes): ");
   show_in_hex_one_line(txbuffer, 9);

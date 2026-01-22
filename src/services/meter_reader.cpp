@@ -87,6 +87,9 @@ void MeterReader::begin()
     }
 
     // Normal query mode initialization
+    // Set runtime meter target from config (allows runtime changes via HA)
+    set_meter_target(m_config->getMeterYear(), m_config->getMeterSerial());
+
     // Register FrequencyManager callbacks
     FrequencyManager::setRadioInitCallback(cc1101_init);
     FrequencyManager::setMeterReadCallback(get_meter_data);

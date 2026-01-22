@@ -4,6 +4,7 @@
  */
 
 #include "everblu_meter.h"
+#include "cc1101.h"  // For set_meter_target()
 #ifndef __INTELLISENSE__
 #include "esphome/core/log.h"
 #endif
@@ -384,6 +385,9 @@ namespace esphome
                 config_provider_->setMeterYear(year);
             }
 
+            // Update CC1101 runtime target for next query
+            set_meter_target(meter_year_, meter_serial_);
+
             // Save to flash
             save_preferences_();
 
@@ -411,6 +415,9 @@ namespace esphome
             {
                 config_provider_->setMeterSerial(serial);
             }
+
+            // Update CC1101 runtime target for next query
+            set_meter_target(meter_year_, meter_serial_);
 
             // Save to flash
             save_preferences_();
