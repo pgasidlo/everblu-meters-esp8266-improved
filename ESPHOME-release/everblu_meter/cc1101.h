@@ -143,4 +143,18 @@ void sniffer_configure_rx(void);
  */
 bool sniffer_listen(struct detected_meter *detected, int timeout_ms);
 
+/**
+ * @brief Listen for meter response after detecting trigger frame (extended sniffer mode)
+ *
+ * After a trigger frame is detected, this function reconfigures the radio to
+ * receive the meter's response at 2.4 kbps and decodes it.
+ *
+ * Call this immediately after sniffer_listen() returns true.
+ *
+ * @param data Output structure to store captured meter data
+ * @param timeout_ms Maximum time to wait for response (milliseconds)
+ * @return true if a valid meter response was captured and decoded, false otherwise
+ */
+bool sniffer_listen_response(struct tmeter_data *data, int timeout_ms);
+
 #endif // __CC1101_H__

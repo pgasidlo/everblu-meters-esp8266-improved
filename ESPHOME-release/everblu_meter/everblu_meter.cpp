@@ -96,6 +96,7 @@ namespace esphome
             config_provider_->setMaxRetries(max_retries_);
             config_provider_->setRetryCooldownMs(retry_cooldown_ms_);
             config_provider_->setSnifferMode(sniffer_mode_);
+            config_provider_->setSnifferExtendedMode(sniffer_extended_mode_);
 
             // Create time provider
             if (time_component_ != nullptr)
@@ -136,13 +137,20 @@ namespace esphome
             data_publisher_->set_active_reading_sensor(active_reading_sensor_);
             data_publisher_->set_radio_connected_sensor(radio_connected_sensor_);
 
-            // Sniffer sensors
+            // Sniffer sensors (trigger frame detection)
             data_publisher_->set_sniffer_detection_sensor(sniffer_detection_sensor_);
             data_publisher_->set_sniffer_timestamp_sensor(sniffer_timestamp_sensor_);
             data_publisher_->set_sniffer_year_sensor(sniffer_year_sensor_);
             data_publisher_->set_sniffer_serial_sensor(sniffer_serial_sensor_);
             data_publisher_->set_sniffer_rssi_sensor(sniffer_rssi_sensor_);
             data_publisher_->set_sniffer_lqi_sensor(sniffer_lqi_sensor_);
+
+            // Sniffer extended sensors (meter response capture)
+            data_publisher_->set_sniffer_volume_sensor(sniffer_volume_sensor_);
+            data_publisher_->set_sniffer_counter_sensor(sniffer_counter_sensor_);
+            data_publisher_->set_sniffer_battery_sensor(sniffer_battery_sensor_);
+            data_publisher_->set_sniffer_time_start_sensor(sniffer_time_start_sensor_);
+            data_publisher_->set_sniffer_time_end_sensor(sniffer_time_end_sensor_);
 
             // Quick diagnostic: report how many sensors were linked
             int numeric = 0;

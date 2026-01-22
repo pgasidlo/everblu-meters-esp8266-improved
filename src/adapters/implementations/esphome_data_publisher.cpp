@@ -335,6 +335,39 @@ void ESPHomeDataPublisher::publishSnifferDetection(uint8_t year, uint32_t serial
 #endif
 }
 
+void ESPHomeDataPublisher::publishSnifferResponse(const tmeter_data &data, const char *timestamp)
+{
+#ifdef USE_ESPHOME
+    ESP_LOGI(TAG_PUB, "Publishing sniffer response: volume=%d, counter=%d, battery=%d",
+             data.volume, data.reads_counter, data.battery_left);
+
+    if (sniffer_volume_sensor_)
+    {
+        sniffer_volume_sensor_->publish_state(data.volume);
+    }
+    if (sniffer_counter_sensor_)
+    {
+        sniffer_counter_sensor_->publish_state(data.reads_counter);
+    }
+    if (sniffer_battery_sensor_)
+    {
+        sniffer_battery_sensor_->publish_state(data.battery_left);
+    }
+    if (sniffer_time_start_sensor_)
+    {
+        char time_start_str[6];
+        snprintf(time_start_str, sizeof(time_start_str), "%02d:00", data.time_start);
+        sniffer_time_start_sensor_->publish_state(time_start_str);
+    }
+    if (sniffer_time_end_sensor_)
+    {
+        char time_end_str[6];
+        snprintf(time_end_str, sizeof(time_end_str), "%02d:00", data.time_end);
+        sniffer_time_end_sensor_->publish_state(time_end_str);
+    }
+#endif
+}
+
 void ESPHomeDataPublisher::publishUptime(unsigned long uptimeSeconds, const char *uptimeISO)
 {
 #ifdef USE_ESPHOME

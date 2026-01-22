@@ -72,11 +72,25 @@ public:
         bool isSnifferMode() const override
         {
 #ifdef OPERATING_MODE
-                // Check if mode is "sniffer"
+                // Check if mode starts with "sniffer"
                 const char *mode = OPERATING_MODE;
                 return (mode[0] == 's' || mode[0] == 'S');
 #else
                 return false; // Default to query mode
+#endif
+        }
+
+        bool isSnifferExtendedMode() const override
+        {
+#ifdef OPERATING_MODE
+                // Check if mode is "sniffer_extended"
+                const char *mode = OPERATING_MODE;
+                // Simple check: "sniffer_extended" has 'e' at position 8
+                if ((mode[0] == 's' || mode[0] == 'S') && mode[8] == 'e')
+                        return true;
+                return false;
+#else
+                return false;
 #endif
         }
 
@@ -176,6 +190,7 @@ public:
         float getFrequency() const override { return 433.82f; }
         bool isAutoScanEnabled() const override { return true; }
         bool isSnifferMode() const override { return false; }
+        bool isSnifferExtendedMode() const override { return false; }
         const char *getReadingSchedule() const override { return "Monday-Friday"; }
         int getReadHourUTC() const override { return 10; }
         int getReadMinuteUTC() const override { return 0; }

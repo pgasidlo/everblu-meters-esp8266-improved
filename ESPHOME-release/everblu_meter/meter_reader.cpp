@@ -195,13 +195,41 @@ void MeterReader::loop()
             m_successfulReads++;
 
             // Publish detection to Home Assistant
+            char iso8601[32];
+            time_t now = m_timeProvider->getCurrentTime();
+            strftime(iso8601, sizeof(iso8601), "%FT%TZ", gmtime(&now));
+
             if (m_publisher && m_publisher->isReady())
             {
-                char iso8601[32];
-                time_t now = m_timeProvider->getCurrentTime();
-                strftime(iso8601, sizeof(iso8601), "%FT%TZ", gmtime(&now));
                 m_publisher->publishSnifferDetection(detected.meter_year, detected.meter_serial,
                                                      detected.rssi_dbm, detected.lqi, iso8601);
+            }
+
+            // Extended sniffer mode: also capture the meter's response
+            if (m_config->isSnifferExtendedMode())
+            {
+                LOG_I("sniffer", "Extended mode: listening for meter response...");
+                struct tmeter_data response;
+
+                // Wait up to 800ms for the meter's response
+                if (sniffer_listen_response(&response, 800))
+                {
+                    LOG_I("sniffer", "=== RESPONSE CAPTURED ===");
+                    LOG_I("sniffer", "Volume: %d, Counter: %d, Battery: %d months",
+                          response.volume, response.reads_counter, response.battery_left);
+                    LOG_I("sniffer", "Wake window: %02d:00 - %02d:00",
+                          response.time_start, response.time_end);
+
+                    // Publish response to Home Assistant
+                    if (m_publisher && m_publisher->isReady())
+                    {
+                        m_publisher->publishSnifferResponse(response, iso8601);
+                    }
+                }
+                else
+                {
+                    LOG_W("sniffer", "No meter response captured (timeout or decode error)");
+                }
             }
         }
 

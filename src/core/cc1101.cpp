@@ -2035,3 +2035,109 @@ bool sniffer_listen(struct detected_meter *detected, int timeout_ms)
 
   return true;
 }
+
+/**
+ * @brief Listen for meter response after detecting trigger frame (extended sniffer mode)
+ *
+ * After detecting a trigger frame, this function configures the radio for
+ * normal 2.4 kbps reception to capture the meter's response.
+ *
+ * The meter response consists of:
+ * 1. ACK frame (18 bytes) - acknowledgement of received trigger
+ * 2. Data frame (124 bytes) - contains volume, counter, battery, time_start, time_end, history
+ */
+bool sniffer_listen_response(struct tmeter_data *data, int timeout_ms)
+{
+  static uint8_t rxBuffer[1000];
+  static uint8_t meter_data[200];
+  int rxBuffer_size;
+  uint8_t meter_data_size = 0;
+
+  memset(data, 0, sizeof(tmeter_data));
+  memset(rxBuffer, 0, sizeof(rxBuffer));
+  memset(meter_data, 0, sizeof(meter_data));
+
+  echo_debug(1, "[SNIFFER_EXT] Switching to response reception mode (2.4 kbps)\n");
+
+  // Reconfigure CC1101 for normal 2.4 kbps response reception
+  CC1101_CMD(SIDLE);
+  CC1101_CMD(SFRX);
+
+  // Restore normal sync word and data rate for response reception
+  halRfWriteReg(SYNC1, SYNC1_PATTERN_55);              // 0x55 - RADIAN preamble
+  halRfWriteReg(SYNC0, SYNC0_PATTERN_50);              // 0x50 - frame start marker
+  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ_2_4KBPS); // 2.4 kbps for response
+  halRfWriteReg(MDMCFG3, MDMCFG3_DRATE_2_4KBPS);
+  halRfWriteReg(MDMCFG2, MDMCFG2_2FSK_16_16_SYNC);
+  halRfWriteReg(PKTCTRL0, PKTCTRL0_FIXED_LENGTH);
+
+  cc1101_rec_mode();
+
+  // Wait for ACK frame (18 bytes, short timeout since meter should respond quickly)
+  echo_debug(1, "[SNIFFER_EXT] Waiting for ACK frame (18-byte frame, 200ms timeout)...\n");
+  if (!receive_radian_frame(0x12, 200, rxBuffer, sizeof(rxBuffer)))
+  {
+    echo_debug(1, "[SNIFFER_EXT] No ACK frame received\n");
+    // Continue anyway - ACK might have been missed but data frame may still come
+  }
+  else
+  {
+    echo_debug(1, "[SNIFFER_EXT] ACK frame received\n");
+  }
+
+  // Wait for data frame (124 bytes)
+  echo_debug(1, "[SNIFFER_EXT] Waiting for data frame (124-byte frame, %dms timeout)...\n", timeout_ms);
+  rxBuffer_size = receive_radian_frame(0x7C, timeout_ms, rxBuffer, sizeof(rxBuffer));
+
+  if (!rxBuffer_size)
+  {
+    echo_debug(1, "[SNIFFER_EXT] No data frame received (timeout)\n");
+    // Restore sniffer mode configuration
+    sniffer_configure_rx();
+    return false;
+  }
+
+  echo_debug(1, "[SNIFFER_EXT] Data frame received - decoding %d raw bytes\n", rxBuffer_size);
+
+  // Decode the response
+  meter_data_size = decode_4bitpbit_serial(rxBuffer, rxBuffer_size, meter_data);
+  echo_debug(1, "[SNIFFER_EXT] Decoded %d bytes from %d raw bytes\n", meter_data_size, rxBuffer_size);
+
+  if (meter_data_size == 0)
+  {
+    echo_debug(1, "[SNIFFER_EXT] Decoding failed\n");
+    sniffer_configure_rx();
+    return false;
+  }
+
+  // Validate CRC
+  echo_debug(1, "[SNIFFER_EXT] Validating CRC...\n");
+  if (!validate_radian_crc(meter_data, meter_data_size))
+  {
+    echo_debug(1, "[SNIFFER_EXT] CRC validation failed\n");
+    sniffer_configure_rx();
+    return false;
+  }
+
+  echo_debug(1, "[SNIFFER_EXT] CRC valid - parsing meter data\n");
+
+  // Parse the meter report
+  *data = parse_meter_report(meter_data, meter_data_size);
+
+  // Capture signal quality
+  data->rssi = halRfReadReg(RSSI_ADDR);
+  data->rssi_dbm = cc1100_rssi_convert2dbm(halRfReadReg(RSSI_ADDR));
+  data->lqi = halRfReadReg(LQI_ADDR);
+  data->freqest = (int8_t)halRfReadReg(FREQEST_ADDR);
+
+  echo_debug(1, "[SNIFFER_EXT] === RESPONSE CAPTURED ===\n");
+  echo_debug(1, "[SNIFFER_EXT] Volume: %d, Counter: %d, Battery: %d months\n",
+             data->volume, data->reads_counter, data->battery_left);
+  echo_debug(1, "[SNIFFER_EXT] Wake window: %02d:00 - %02d:00\n",
+             data->time_start, data->time_end);
+
+  // Restore sniffer mode configuration for next trigger detection
+  sniffer_configure_rx();
+
+  return true;
+}

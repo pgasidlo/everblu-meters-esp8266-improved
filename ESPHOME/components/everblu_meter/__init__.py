@@ -58,6 +58,7 @@ CONF_MODE = "mode"
 # Operating modes
 MODE_QUERY = "query"
 MODE_SNIFFER = "sniffer"
+MODE_SNIFFER_EXTENDED = "sniffer_extended"
 
 # Sensor configuration keys
 CONF_VOLUME = "volume"
@@ -93,13 +94,20 @@ CONF_RESET_FREQUENCY_BUTTON = "reset_frequency_button"
 CONF_METER_YEAR_NUMBER = "meter_year_number"
 CONF_METER_SERIAL_NUMBER = "meter_serial_number"
 
-# Sniffer sensors
+# Sniffer sensors (trigger frame detection)
 CONF_SNIFFER_DETECTION = "sniffer_detection"
 CONF_SNIFFER_TIMESTAMP = "sniffer_timestamp"
 CONF_SNIFFER_YEAR = "sniffer_year"
 CONF_SNIFFER_SERIAL = "sniffer_serial"
 CONF_SNIFFER_RSSI = "sniffer_rssi"
 CONF_SNIFFER_LQI = "sniffer_lqi"
+
+# Sniffer extended sensors (meter response capture)
+CONF_SNIFFER_VOLUME = "sniffer_volume"
+CONF_SNIFFER_COUNTER = "sniffer_counter"
+CONF_SNIFFER_BATTERY = "sniffer_battery"
+CONF_SNIFFER_TIME_START = "sniffer_time_start"
+CONF_SNIFFER_TIME_END = "sniffer_time_end"
 
 # Meter types
 METER_TYPE_WATER = "water"
@@ -139,7 +147,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_INITIAL_READ_ON_BOOT, default=False): cv.boolean,
             cv.Optional(CONF_DEBUG_CC1101, default=False): cv.boolean,
             cv.Optional(CONF_ADAPTIVE_THRESHOLD, default=1): cv.int_range(min=1, max=100),
-            cv.Optional(CONF_MODE, default=MODE_QUERY): cv.one_of(MODE_QUERY, MODE_SNIFFER, lower=True),
+            cv.Optional(CONF_MODE, default=MODE_QUERY): cv.one_of(MODE_QUERY, MODE_SNIFFER, MODE_SNIFFER_EXTENDED, lower=True),
             # Sensors
             cv.Optional(CONF_VOLUME): sensor.sensor_schema(
                 state_class=STATE_CLASS_TOTAL_INCREASING,
@@ -299,6 +307,30 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
                 icon="mdi:signal",
             ),
+            # Sniffer extended sensors (meter response capture, only in sniffer_extended mode)
+            cv.Optional(CONF_SNIFFER_VOLUME): sensor.sensor_schema(
+                unit_of_measurement="L",
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_TOTAL_INCREASING,
+                icon="mdi:water",
+            ),
+            cv.Optional(CONF_SNIFFER_COUNTER): sensor.sensor_schema(
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_TOTAL_INCREASING,
+                icon="mdi:counter",
+            ),
+            cv.Optional(CONF_SNIFFER_BATTERY): sensor.sensor_schema(
+                unit_of_measurement="months",
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+                icon="mdi:battery-clock",
+            ),
+            cv.Optional(CONF_SNIFFER_TIME_START): text_sensor.text_sensor_schema(
+                icon="mdi:clock-start",
+            ),
+            cv.Optional(CONF_SNIFFER_TIME_END): text_sensor.text_sensor_schema(
+                icon="mdi:clock-end",
+            ),
             # Editable number entities (for runtime meter configuration in query mode)
             cv.Optional(CONF_METER_YEAR_NUMBER): number.number_schema(
                 EverbluMeterYearNumber,
@@ -360,7 +392,8 @@ async def to_code(config):
     cg.add(var.set_retry_cooldown(config[CONF_RETRY_COOLDOWN]))  # Already in ms
     cg.add(var.set_initial_read_on_boot(config[CONF_INITIAL_READ_ON_BOOT]))
     cg.add(var.set_adaptive_threshold(config[CONF_ADAPTIVE_THRESHOLD]))
-    cg.add(var.set_sniffer_mode(config[CONF_MODE] == MODE_SNIFFER))
+    cg.add(var.set_sniffer_mode(config[CONF_MODE] in (MODE_SNIFFER, MODE_SNIFFER_EXTENDED)))
+    cg.add(var.set_sniffer_extended_mode(config[CONF_MODE] == MODE_SNIFFER_EXTENDED))
 
     # Enable detailed CC1101 debug logs when requested
     if config.get(CONF_DEBUG_CC1101, False):
@@ -534,6 +567,27 @@ async def to_code(config):
     if CONF_SNIFFER_LQI in config:
         sens = await sensor.new_sensor(config[CONF_SNIFFER_LQI])
         cg.add(var.set_sniffer_lqi_sensor(sens))
+
+    # Register sniffer extended sensors (meter response capture)
+    if CONF_SNIFFER_VOLUME in config:
+        sens = await sensor.new_sensor(config[CONF_SNIFFER_VOLUME])
+        cg.add(var.set_sniffer_volume_sensor(sens))
+
+    if CONF_SNIFFER_COUNTER in config:
+        sens = await sensor.new_sensor(config[CONF_SNIFFER_COUNTER])
+        cg.add(var.set_sniffer_counter_sensor(sens))
+
+    if CONF_SNIFFER_BATTERY in config:
+        sens = await sensor.new_sensor(config[CONF_SNIFFER_BATTERY])
+        cg.add(var.set_sniffer_battery_sensor(sens))
+
+    if CONF_SNIFFER_TIME_START in config:
+        sens = await text_sensor.new_text_sensor(config[CONF_SNIFFER_TIME_START])
+        cg.add(var.set_sniffer_time_start_sensor(sens))
+
+    if CONF_SNIFFER_TIME_END in config:
+        sens = await text_sensor.new_text_sensor(config[CONF_SNIFFER_TIME_END])
+        cg.add(var.set_sniffer_time_end_sensor(sens))
 
     # Register editable number entities
     if CONF_METER_YEAR_NUMBER in config:

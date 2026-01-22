@@ -123,6 +123,13 @@ public:
     virtual void publishSnifferDetection(uint8_t year, uint32_t serial, int8_t rssi, uint8_t lqi, const char *timestamp) = 0;
 
     /**
+     * @brief Publish sniffer response (captured meter response in extended sniffer mode)
+     * @param data Meter data structure with all readings from captured response
+     * @param timestamp ISO8601 timestamp string
+     */
+    virtual void publishSnifferResponse(const tmeter_data &data, const char *timestamp) = 0;
+
+    /**
      * @brief Publish uptime
      * @param uptimeSeconds System uptime in seconds
      * @param uptimeISO Uptime as ISO8601 duration string

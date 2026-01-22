@@ -40,6 +40,7 @@ public:
 
     // Operating mode
     virtual bool isSnifferMode() const = 0;
+    virtual bool isSnifferExtendedMode() const = 0;
 
     // Scheduling configuration
     virtual const char *getReadingSchedule() const = 0;

@@ -113,6 +113,7 @@ namespace esphome
             void set_initial_read_on_boot(bool v) { initial_read_on_boot_ = v; }
             void set_adaptive_threshold(int threshold) { adaptive_threshold_ = threshold; }
             void set_sniffer_mode(bool enabled) { sniffer_mode_ = enabled; }
+            void set_sniffer_extended_mode(bool enabled) { sniffer_extended_mode_ = enabled; }
 
             // Sensor setters
             void set_volume_sensor(sensor::Sensor *sensor) { volume_sensor_ = sensor; }
@@ -143,13 +144,20 @@ namespace esphome
             void set_active_reading_sensor(binary_sensor::BinarySensor *sensor) { active_reading_sensor_ = sensor; }
             void set_radio_connected_sensor(binary_sensor::BinarySensor *sensor) { radio_connected_sensor_ = sensor; }
 
-            // Sniffer sensors
+            // Sniffer sensors (trigger frame detection)
             void set_sniffer_detection_sensor(text_sensor::TextSensor *sensor) { sniffer_detection_sensor_ = sensor; }
             void set_sniffer_timestamp_sensor(text_sensor::TextSensor *sensor) { sniffer_timestamp_sensor_ = sensor; }
             void set_sniffer_year_sensor(sensor::Sensor *sensor) { sniffer_year_sensor_ = sensor; }
             void set_sniffer_serial_sensor(sensor::Sensor *sensor) { sniffer_serial_sensor_ = sensor; }
             void set_sniffer_rssi_sensor(sensor::Sensor *sensor) { sniffer_rssi_sensor_ = sensor; }
             void set_sniffer_lqi_sensor(sensor::Sensor *sensor) { sniffer_lqi_sensor_ = sensor; }
+
+            // Sniffer extended sensors (meter response capture)
+            void set_sniffer_volume_sensor(sensor::Sensor *sensor) { sniffer_volume_sensor_ = sensor; }
+            void set_sniffer_counter_sensor(sensor::Sensor *sensor) { sniffer_counter_sensor_ = sensor; }
+            void set_sniffer_battery_sensor(sensor::Sensor *sensor) { sniffer_battery_sensor_ = sensor; }
+            void set_sniffer_time_start_sensor(text_sensor::TextSensor *sensor) { sniffer_time_start_sensor_ = sensor; }
+            void set_sniffer_time_end_sensor(text_sensor::TextSensor *sensor) { sniffer_time_end_sensor_ = sensor; }
 
             // External actions
             void request_manual_read();
@@ -182,6 +190,7 @@ namespace esphome
             unsigned long retry_cooldown_ms_{3600000};
             int adaptive_threshold_{1};
             bool sniffer_mode_{false};
+            bool sniffer_extended_mode_{false};
 
             // Internal state tracking
             void republish_initial_states();
@@ -218,13 +227,20 @@ namespace esphome
             binary_sensor::BinarySensor *active_reading_sensor_{nullptr};
             binary_sensor::BinarySensor *radio_connected_sensor_{nullptr};
 
-            // Sniffer sensors
+            // Sniffer sensors (trigger frame detection)
             text_sensor::TextSensor *sniffer_detection_sensor_{nullptr};
             text_sensor::TextSensor *sniffer_timestamp_sensor_{nullptr};
             sensor::Sensor *sniffer_year_sensor_{nullptr};
             sensor::Sensor *sniffer_serial_sensor_{nullptr};
             sensor::Sensor *sniffer_rssi_sensor_{nullptr};
             sensor::Sensor *sniffer_lqi_sensor_{nullptr};
+
+            // Sniffer extended sensors (meter response capture)
+            sensor::Sensor *sniffer_volume_sensor_{nullptr};
+            sensor::Sensor *sniffer_counter_sensor_{nullptr};
+            sensor::Sensor *sniffer_battery_sensor_{nullptr};
+            text_sensor::TextSensor *sniffer_time_start_sensor_{nullptr};
+            text_sensor::TextSensor *sniffer_time_end_sensor_{nullptr};
 
             // Core meter reading components (adapters + orchestrator)
             ESPHomeConfigProvider *config_provider_{nullptr};
