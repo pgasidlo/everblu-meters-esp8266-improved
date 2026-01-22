@@ -2066,7 +2066,7 @@ bool sniffer_listen_response(struct tmeter_data *data, int timeout_ms)
   // Restore normal sync word and data rate for response reception
   halRfWriteReg(SYNC1, SYNC1_PATTERN_55);              // 0x55 - RADIAN preamble
   halRfWriteReg(SYNC0, SYNC0_PATTERN_50);              // 0x50 - frame start marker
-  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ_2_4KBPS); // 2.4 kbps for response
+  halRfWriteReg(MDMCFG4, MDMCFG4_RX_BW_58KHZ); // 2.4 kbps for response
   halRfWriteReg(MDMCFG3, MDMCFG3_DRATE_2_4KBPS);
   halRfWriteReg(MDMCFG2, MDMCFG2_2FSK_16_16_SYNC);
   halRfWriteReg(PKTCTRL0, PKTCTRL0_FIXED_LENGTH);
