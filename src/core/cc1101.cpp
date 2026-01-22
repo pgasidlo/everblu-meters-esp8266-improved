@@ -1518,10 +1518,15 @@ struct tmeter_data get_meter_data(void)
   memset(meter_data, 0, sizeof(meter_data)); // Clear static buffer
 
   uint8_t txbuffer[100];
-  Make_Radian_Master_req(txbuffer, METER_YEAR, METER_SERIAL);
+  int txLen = Make_Radian_Master_req(txbuffer, METER_YEAR, METER_SERIAL);
 
   echo_debug(1, "[METER] Transmitting wake-up + interrogation (Year=%d, Serial=%lu)...\n",
              METER_YEAR, (unsigned long)METER_SERIAL);
+  echo_debug(1, "[METER] Trigger frame (%d bytes):\n", txLen);
+  echo_debug(1, "  sync_pattern (9 bytes): ");
+  show_in_hex_one_line(txbuffer, 9);
+  echo_debug(1, "  encoded_frame (%d bytes): ", txLen - 9);
+  show_in_hex_one_line(&txbuffer[9], txLen > 9 ? txLen - 9 : 0);
   halRfWriteReg(MDMCFG2, MDMCFG2_NO_PREAMBLE_SYNC);  // No preamble/sync for WUP
   halRfWriteReg(PKTCTRL0, PKTCTRL0_INFINITE_LENGTH); // Infinite packet length
   SPIWriteBurstReg(TX_FIFO_ADDR, wupbuffer, 8);
