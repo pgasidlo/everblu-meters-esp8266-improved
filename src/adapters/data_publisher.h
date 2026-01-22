@@ -113,6 +113,16 @@ public:
     virtual void publishTunedFrequency(float frequencyMHz) = 0;
 
     /**
+     * @brief Publish sniffer detection (detected meter from trigger frame)
+     * @param year Meter year (2-digit)
+     * @param serial Meter serial number
+     * @param rssi RSSI in dBm
+     * @param lqi Link Quality Indicator
+     * @param timestamp ISO8601 timestamp string
+     */
+    virtual void publishSnifferDetection(uint8_t year, uint32_t serial, int8_t rssi, uint8_t lqi, const char *timestamp) = 0;
+
+    /**
      * @brief Publish uptime
      * @param uptimeSeconds System uptime in seconds
      * @param uptimeISO Uptime as ISO8601 duration string

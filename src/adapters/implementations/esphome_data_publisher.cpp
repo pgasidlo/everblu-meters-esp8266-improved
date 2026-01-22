@@ -295,6 +295,46 @@ void ESPHomeDataPublisher::publishTunedFrequency(float frequencyMHz)
 #endif
 }
 
+void ESPHomeDataPublisher::publishSnifferDetection(uint8_t year, uint32_t serial, int8_t rssi, uint8_t lqi, const char *timestamp)
+{
+#ifdef USE_ESPHOME
+    ESP_LOGI(TAG_PUB, "Publishing sniffer detection: year=%d, serial=%lu, rssi=%d, lqi=%d",
+             year, (unsigned long)serial, rssi, lqi);
+
+    // Publish individual sensors
+    if (sniffer_year_sensor_)
+    {
+        sniffer_year_sensor_->publish_state(year);
+    }
+    if (sniffer_serial_sensor_)
+    {
+        sniffer_serial_sensor_->publish_state(serial);
+    }
+    if (sniffer_rssi_sensor_)
+    {
+        sniffer_rssi_sensor_->publish_state(rssi);
+    }
+    if (sniffer_lqi_sensor_)
+    {
+        sniffer_lqi_sensor_->publish_state(lqi);
+    }
+    if (sniffer_timestamp_sensor_)
+    {
+        sniffer_timestamp_sensor_->publish_state(timestamp);
+    }
+
+    // Publish JSON detection (all data in one sensor)
+    if (sniffer_detection_sensor_)
+    {
+        char json[128];
+        snprintf(json, sizeof(json),
+                 "{\"year\":%d,\"serial\":%lu,\"rssi\":%d,\"lqi\":%d,\"timestamp\":\"%s\"}",
+                 year, (unsigned long)serial, rssi, lqi, timestamp);
+        sniffer_detection_sensor_->publish_state(json);
+    }
+#endif
+}
+
 void ESPHomeDataPublisher::publishUptime(unsigned long uptimeSeconds, const char *uptimeISO)
 {
 #ifdef USE_ESPHOME

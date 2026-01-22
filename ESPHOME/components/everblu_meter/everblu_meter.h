@@ -117,6 +117,14 @@ namespace esphome
             void set_active_reading_sensor(binary_sensor::BinarySensor *sensor) { active_reading_sensor_ = sensor; }
             void set_radio_connected_sensor(binary_sensor::BinarySensor *sensor) { radio_connected_sensor_ = sensor; }
 
+            // Sniffer sensors
+            void set_sniffer_detection_sensor(text_sensor::TextSensor *sensor) { sniffer_detection_sensor_ = sensor; }
+            void set_sniffer_timestamp_sensor(text_sensor::TextSensor *sensor) { sniffer_timestamp_sensor_ = sensor; }
+            void set_sniffer_year_sensor(sensor::Sensor *sensor) { sniffer_year_sensor_ = sensor; }
+            void set_sniffer_serial_sensor(sensor::Sensor *sensor) { sniffer_serial_sensor_ = sensor; }
+            void set_sniffer_rssi_sensor(sensor::Sensor *sensor) { sniffer_rssi_sensor_ = sensor; }
+            void set_sniffer_lqi_sensor(sensor::Sensor *sensor) { sniffer_lqi_sensor_ = sensor; }
+
             // External actions
             void request_manual_read();
             void request_frequency_scan();
@@ -175,6 +183,14 @@ namespace esphome
 
             binary_sensor::BinarySensor *active_reading_sensor_{nullptr};
             binary_sensor::BinarySensor *radio_connected_sensor_{nullptr};
+
+            // Sniffer sensors
+            text_sensor::TextSensor *sniffer_detection_sensor_{nullptr};
+            text_sensor::TextSensor *sniffer_timestamp_sensor_{nullptr};
+            sensor::Sensor *sniffer_year_sensor_{nullptr};
+            sensor::Sensor *sniffer_serial_sensor_{nullptr};
+            sensor::Sensor *sniffer_rssi_sensor_{nullptr};
+            sensor::Sensor *sniffer_lqi_sensor_{nullptr};
 
             // Core meter reading components (adapters + orchestrator)
             ESPHomeConfigProvider *config_provider_{nullptr};

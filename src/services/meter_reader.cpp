@@ -190,6 +190,16 @@ void MeterReader::loop()
 
             m_totalReadAttempts++; // Track detections as "attempts" for stats
             m_successfulReads++;
+
+            // Publish detection to Home Assistant
+            if (m_publisher && m_publisher->isReady())
+            {
+                char iso8601[32];
+                time_t now = m_timeProvider->getCurrentTime();
+                strftime(iso8601, sizeof(iso8601), "%FT%TZ", gmtime(&now));
+                m_publisher->publishSnifferDetection(detected.meter_year, detected.meter_serial,
+                                                     detected.rssi_dbm, detected.lqi, iso8601);
+            }
         }
 
         return; // Skip normal query mode logic

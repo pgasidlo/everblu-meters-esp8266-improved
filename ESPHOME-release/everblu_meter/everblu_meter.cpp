@@ -108,6 +108,14 @@ namespace esphome
             data_publisher_->set_active_reading_sensor(active_reading_sensor_);
             data_publisher_->set_radio_connected_sensor(radio_connected_sensor_);
 
+            // Sniffer sensors
+            data_publisher_->set_sniffer_detection_sensor(sniffer_detection_sensor_);
+            data_publisher_->set_sniffer_timestamp_sensor(sniffer_timestamp_sensor_);
+            data_publisher_->set_sniffer_year_sensor(sniffer_year_sensor_);
+            data_publisher_->set_sniffer_serial_sensor(sniffer_serial_sensor_);
+            data_publisher_->set_sniffer_rssi_sensor(sniffer_rssi_sensor_);
+            data_publisher_->set_sniffer_lqi_sensor(sniffer_lqi_sensor_);
+
             // Quick diagnostic: report how many sensors were linked
             int numeric = 0;
             numeric += (volume_sensor_ != nullptr);

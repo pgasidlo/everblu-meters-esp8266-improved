@@ -86,6 +86,14 @@ public:
     // Binary sensors
     void set_active_reading_sensor(esphome::binary_sensor::BinarySensor *sensor) { active_reading_sensor_ = sensor; }
     void set_radio_connected_sensor(esphome::binary_sensor::BinarySensor *sensor) { radio_connected_sensor_ = sensor; }
+
+    // Sniffer sensors
+    void set_sniffer_detection_sensor(esphome::text_sensor::TextSensor *sensor) { sniffer_detection_sensor_ = sensor; }
+    void set_sniffer_timestamp_sensor(esphome::text_sensor::TextSensor *sensor) { sniffer_timestamp_sensor_ = sensor; }
+    void set_sniffer_year_sensor(esphome::sensor::Sensor *sensor) { sniffer_year_sensor_ = sensor; }
+    void set_sniffer_serial_sensor(esphome::sensor::Sensor *sensor) { sniffer_serial_sensor_ = sensor; }
+    void set_sniffer_rssi_sensor(esphome::sensor::Sensor *sensor) { sniffer_rssi_sensor_ = sensor; }
+    void set_sniffer_lqi_sensor(esphome::sensor::Sensor *sensor) { sniffer_lqi_sensor_ = sensor; }
 #endif
 
     // IDataPublisher interface implementation
@@ -104,6 +112,7 @@ public:
                            unsigned long failedReads) override;
     void publishFrequencyOffset(float offsetMHz) override;
     void publishTunedFrequency(float frequencyMHz) override;
+    void publishSnifferDetection(uint8_t year, uint32_t serial, int8_t rssi, uint8_t lqi, const char *timestamp) override;
     void publishUptime(unsigned long uptimeSeconds, const char *uptimeISO) override;
     void publishFirmwareVersion(const char *version) override;
     void publishDiscovery() override;
@@ -146,6 +155,14 @@ private:
     // Binary sensors
     esphome::binary_sensor::BinarySensor *active_reading_sensor_{nullptr};
     esphome::binary_sensor::BinarySensor *radio_connected_sensor_{nullptr};
+
+    // Sniffer sensors
+    esphome::text_sensor::TextSensor *sniffer_detection_sensor_{nullptr};
+    esphome::text_sensor::TextSensor *sniffer_timestamp_sensor_{nullptr};
+    esphome::sensor::Sensor *sniffer_year_sensor_{nullptr};
+    esphome::sensor::Sensor *sniffer_serial_sensor_{nullptr};
+    esphome::sensor::Sensor *sniffer_rssi_sensor_{nullptr};
+    esphome::sensor::Sensor *sniffer_lqi_sensor_{nullptr};
 #endif
 
     // Helper methods

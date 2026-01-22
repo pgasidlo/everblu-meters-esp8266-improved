@@ -87,6 +87,14 @@ CONF_REQUEST_READING_BUTTON = "request_reading_button"
 CONF_FREQUENCY_SCAN_BUTTON = "frequency_scan_button"
 CONF_RESET_FREQUENCY_BUTTON = "reset_frequency_button"
 
+# Sniffer sensors
+CONF_SNIFFER_DETECTION = "sniffer_detection"
+CONF_SNIFFER_TIMESTAMP = "sniffer_timestamp"
+CONF_SNIFFER_YEAR = "sniffer_year"
+CONF_SNIFFER_SERIAL = "sniffer_serial"
+CONF_SNIFFER_RSSI = "sniffer_rssi"
+CONF_SNIFFER_LQI = "sniffer_lqi"
+
 # Meter types
 METER_TYPE_WATER = "water"
 METER_TYPE_GAS = "gas"
@@ -256,6 +264,34 @@ CONFIG_SCHEMA = (
                 EverbluMeterTriggerButton,
                 icon="mdi:restore",
                 entity_category="config"
+            ),
+            # Sniffer sensors (only used in sniffer mode)
+            cv.Optional(CONF_SNIFFER_DETECTION): text_sensor.text_sensor_schema(
+                icon="mdi:magnify-scan",
+            ),
+            cv.Optional(CONF_SNIFFER_TIMESTAMP): text_sensor.text_sensor_schema(
+                device_class=DEVICE_CLASS_TIMESTAMP,
+                icon="mdi:clock",
+            ),
+            cv.Optional(CONF_SNIFFER_YEAR): sensor.sensor_schema(
+                accuracy_decimals=0,
+                icon="mdi:calendar",
+            ),
+            cv.Optional(CONF_SNIFFER_SERIAL): sensor.sensor_schema(
+                accuracy_decimals=0,
+                icon="mdi:barcode",
+            ),
+            cv.Optional(CONF_SNIFFER_RSSI): sensor.sensor_schema(
+                unit_of_measurement=UNIT_DECIBEL_MILLIWATT,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
+                state_class=STATE_CLASS_MEASUREMENT,
+                icon="mdi:signal",
+            ),
+            cv.Optional(CONF_SNIFFER_LQI): sensor.sensor_schema(
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+                icon="mdi:signal",
             ),
         }
     )
@@ -452,3 +488,28 @@ async def to_code(config):
         cg.add(btn.set_parent(var))
         cg.add(btn.set_frequency_scan(False))
         cg.add(btn.set_reset_frequency(True))
+
+    # Register sniffer sensors
+    if CONF_SNIFFER_DETECTION in config:
+        sens = await text_sensor.new_text_sensor(config[CONF_SNIFFER_DETECTION])
+        cg.add(var.set_sniffer_detection_sensor(sens))
+
+    if CONF_SNIFFER_TIMESTAMP in config:
+        sens = await text_sensor.new_text_sensor(config[CONF_SNIFFER_TIMESTAMP])
+        cg.add(var.set_sniffer_timestamp_sensor(sens))
+
+    if CONF_SNIFFER_YEAR in config:
+        sens = await sensor.new_sensor(config[CONF_SNIFFER_YEAR])
+        cg.add(var.set_sniffer_year_sensor(sens))
+
+    if CONF_SNIFFER_SERIAL in config:
+        sens = await sensor.new_sensor(config[CONF_SNIFFER_SERIAL])
+        cg.add(var.set_sniffer_serial_sensor(sens))
+
+    if CONF_SNIFFER_RSSI in config:
+        sens = await sensor.new_sensor(config[CONF_SNIFFER_RSSI])
+        cg.add(var.set_sniffer_rssi_sensor(sens))
+
+    if CONF_SNIFFER_LQI in config:
+        sens = await sensor.new_sensor(config[CONF_SNIFFER_LQI])
+        cg.add(var.set_sniffer_lqi_sensor(sens))
